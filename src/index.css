@@ -3,16 +3,16 @@
 @layer base {
   :root {
     --app-bg: radial-gradient(circle at 10% 10%, #1a2440 0%, #070b18 48%, #050814 100%);
-    --app-text: #e5e7eb;
+    --app-text: #f8fafc;
   }
 
   html.light {
-    --app-bg: #f8fafc;
+    --app-bg: radial-gradient(circle at 10% 10%, #f8fbff 0%, #eef3ff 55%, #e8eefc 100%);
     --app-text: #0f172a;
   }
 
   body {
-    background: var(--app-bg);
+    background: var(--app-bg) !important;
     color: var(--app-text);
     font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     transition: background 0.3s ease, color 0.3s ease;
@@ -20,9 +20,53 @@
   }
 }
 
-/* Explicit Light Mode styling fixes */
+/* ========================================================================== */
+/* DARK MODE HIGH-CONTRAST LEGIBILITY RULES                                  */
+/* ========================================================================== */
+html.dark body {
+  background: radial-gradient(circle at 10% 10%, #1a2440 0%, #070b18 48%, #050814 100%) !important;
+  color: #f8fafc !important;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark .hero-title {
+  color: #ffffff !important;
+}
+
+html.dark p,
+html.dark label {
+  color: #cbd5e1 !important;
+}
+
+html.dark span {
+  color: inherit;
+}
+
+html.dark .bg-slate-900 {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+html.dark .bg-slate-950 {
+  background-color: #020617 !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+html.dark header {
+  background-color: rgba(2, 6, 23, 0.85) !important;
+  border-color: #1e293b !important;
+}
+
+/* ========================================================================== */
+/* LIGHT MODE HIGH-CONTRAST LEGIBILITY RULES                                 */
+/* ========================================================================== */
 html.light body {
-  background-color: #f8fafc !important;
+  background: radial-gradient(circle at 10% 10%, #f8fbff 0%, #eef3ff 55%, #e8eefc 100%) !important;
   color: #0f172a !important;
 }
 
@@ -30,28 +74,38 @@ html.light h1,
 html.light h2,
 html.light h3,
 html.light h4,
-html.light span,
-html.light p,
-html.light label {
-  color: #0f172a;
+html.light .hero-title {
+  color: #0f172a !important;
+  -webkit-text-fill-color: initial !important;
 }
 
-html.light .text-slate-400,
-html.light .text-slate-500,
-html.light .text-slate-600 {
+html.light p,
+html.light label {
   color: #334155 !important;
 }
 
-html.light .bg-slate-900 {
+html.light span {
+  color: inherit;
+}
+
+html.light .bg-slate-900,
+html.light .bg-white {
   background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light .bg-slate-950,
+html.light .bg-slate-50 {
+  background-color: #f1f5f9 !important;
   border-color: #cbd5e1 !important;
   color: #0f172a !important;
 }
 
-html.light .bg-slate-950 {
-  background-color: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
+html.light header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
 }
 
 @media print {

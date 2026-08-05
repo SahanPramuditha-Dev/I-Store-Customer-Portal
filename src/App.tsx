@@ -737,8 +737,6 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
   const [pinError, setPinError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  const SUPABASE_URL = 'https://bibwrndmbugtlyuvpmzi.supabase.co';
-
   const handleAdminAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usernameInput.trim() || !pinInput.trim()) {
@@ -749,18 +747,21 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
     setPinError('');
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-staff-pin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: usernameInput.trim().toLowerCase(), pin: pinInput.trim() }),
+      const { data, error } = await supabase.rpc('verify_staff_pin', {
+        p_username: usernameInput.trim().toLowerCase(),
+        p_pin: pinInput.trim(),
       });
-      const data = await res.json();
 
-      if (data.ok) {
+      if (error) {
+        setPinError('Verification service error. Please try again.');
+        return;
+      }
+
+      if (data?.ok) {
         setIsAuthenticated(true);
         setAuthedRole(data.role);
       } else {
-        setPinError(data.error || 'Invalid username or PIN. Access Denied.');
+        setPinError(data?.error || 'Invalid username or PIN. Access Denied.');
       }
     } catch {
       setPinError('Could not connect to verification server. Check your connection.');

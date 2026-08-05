@@ -65,14 +65,49 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
 }
 
 /* -------------------------------------------------------------------------- */
-/* REAL STORE LANDING PAGE (Fully Mobile Responsive & Clean Light/Dark Theme)   */
-/* -------------------------------------------------------------------------- */
 function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const [searchId, setSearchId] = useState('');
   const [phoneLogin, setPhoneLogin] = useState('');
   const [userLoggedIn, setUserLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [pinInput, setPinInput] = useState('');
+  const [customerInvoices, setCustomerInvoices] = useState<any[]>([]);
+  const [loginError, setLoginError] = useState('');
+
+  const handleVerifyCustomer = async () => {
+    if (!phoneLogin.trim() || !pinInput.trim()) {
+      setLoginError('Please enter both your phone number and 4-digit PIN.');
+      return;
+    }
+    setLoading(true);
+    setLoginError('');
+
+    try {
+      // Query Supabase for invoices belonging to this phone number
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*, invoice_items(*)')
+        .ilike('customer_phone', `%${phoneLogin.replace(/\s+/g, '')}%`);
+
+      if (error || !data || data.length === 0) {
+        setLoginError('No matching customer records found for this phone number.');
+      } else {
+        // Check if any invoice ID ends with the 4-digit PIN
+        const match = data.filter((inv: any) => inv.id.endsWith(pinInput.trim()));
+        if (match.length > 0) {
+          setCustomerInvoices(data);
+          setUserLoggedIn(true);
+        } else {
+          setLoginError('Invalid Security PIN. PIN must match the last 4 digits of any of your receipts.');
+        }
+      }
+    } catch {
+      setLoginError('Verification failed. Please check network connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -257,28 +292,60 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                 <input
                   type="text"
                   maxLength={4}
-                  value={searchId}
-                  onChange={(e) => setSearchId(e.target.value)}
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
                   placeholder="e.g. 8942"
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl px-4 py-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono tracking-widest text-center font-bold"
                 />
               </div>
 
+              {loginError && (
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold text-center">{loginError}</p>
+              )}
+
               <button
-                onClick={() => setUserLoggedIn(true)}
+                onClick={handleVerifyCustomer}
+                disabled={loading}
                 className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 text-white font-bold rounded-2xl text-xs shadow-lg shadow-emerald-500/25 transition active:scale-95 flex items-center justify-center space-x-2"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>Verify Security PIN & Enter Portal</span>
+                <span>{loading ? 'Verifying...' : 'Verify Security PIN & Enter Portal'}</span>
               </button>
             </div>
           ) : (
-            <div className="text-center space-y-4 bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                <CheckCircle2 className="w-5 h-5" />
-                <span>Customer Verified (Zero-Cost Verification)</span>
+            <div className="space-y-4 bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>Customer Account Verified</span>
+                </div>
+                <button 
+                  onClick={() => { setUserLoggedIn(false); setCustomerInvoices([]); }}
+                  className="text-xs text-slate-500 hover:underline"
+                >
+                  Sign Out
+                </button>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">Viewing purchase history connected to Supabase Cloud</p>
+
+              <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-bold text-slate-900 dark:text-white">Your Purchase History ({customerInvoices.length}):</p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {customerInvoices.map((inv, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                      <div>
+                        <span className="font-mono font-bold text-cyan-600 dark:text-cyan-400">{inv.id}</span>
+                        <span className="text-[10px] text-slate-500 ml-2">{new Date(inv.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <Link 
+                        to={`/invoice/${inv.id}?token=${inv.token}`}
+                        className="px-2.5 py-1 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg font-bold hover:underline"
+                      >
+                        View Receipt ➔
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -306,6 +373,29 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [repairModalOpen, setRepairModalOpen] = useState(false);
+  const [repairIssue, setRepairIssue] = useState('');
+
+  const handleSubmitRepair = async () => {
+    if (!repairIssue.trim() || !invoice) return;
+    const ticketId = `REP-${Math.floor(1000 + Math.random() * 9000)}`;
+    try {
+      await supabase.from('repair_tickets').insert([
+        {
+          id: ticketId,
+          customer_phone: invoice.customerPhone,
+          device_name: invoice.items[0]?.name || 'Electronic Device',
+          imei_or_serial: invoice.items[0]?.imeiOrSerial || 'N/A',
+          issue_description: repairIssue.trim(),
+          status: 'Submitted'
+        }
+      ]);
+      alert(`Repair ticket submitted successfully! Ticket ID: ${ticketId}`);
+      setRepairIssue('');
+      setRepairModalOpen(false);
+    } catch {
+      alert('Failed to submit repair ticket. Please try again.');
+    }
+  };
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -573,11 +663,13 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
               <Wrench className="w-5 h-5 text-amber-500" />
               <span>Submit Repair Ticket</span>
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Device: iPhone 15 Pro Max (IMEI: 359102910293819)</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Invoice: {activeInvoice.id} | Customer: {activeInvoice.customerPhone}</p>
 
             <div>
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Describe Issue</label>
               <textarea
+                value={repairIssue}
+                onChange={(e) => setRepairIssue(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-xs focus:outline-none focus:border-cyan-500 text-slate-900 dark:text-white"
                 rows={3}
                 placeholder="e.g. Screen flickering or battery draining fast..."
@@ -592,10 +684,7 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  alert('Repair request submitted successfully! Tracking ID: REP-9912');
-                  setRepairModalOpen(false);
-                }}
+                onClick={handleSubmitRepair}
                 className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl"
               >
                 Submit Ticket

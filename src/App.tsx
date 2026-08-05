@@ -121,17 +121,17 @@ function PublicInvoicePage() {
               <span>Print</span>
             </button>
             <button
-              onClick={() => alert('Downloading official PDF receipt...')}
-              className="flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25 transition"
+              onClick={() => window.print()}
+              className="flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25 transition hover:scale-105"
             >
               <Download className="w-4 h-4" />
-              <span>Download PDF</span>
+              <span>Save as PDF</span>
             </button>
           </div>
         </div>
 
         {/* Invoice Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-2xl space-y-8 relative overflow-hidden">
+        <div id="printable-invoice" className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-2xl space-y-8 relative overflow-hidden">
           
           {/* Header & QR Code */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-8 gap-6">

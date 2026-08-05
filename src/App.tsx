@@ -11,9 +11,7 @@ import {
   Sparkles,
   ChevronRight,
   Send,
-  Mail,
   MessageSquare,
-  Bot,
   BarChart3,
   Star,
   Sun,
@@ -22,7 +20,8 @@ import {
   Search,
   ArrowRight,
   Zap,
-  FileCheck
+  FileCheck,
+  ReceiptText
 } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -730,7 +729,7 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
 /* DEMO HUB: FOR TESTING ALL FEATURES & BACKEND SIMULATION                   */
 /* -------------------------------------------------------------------------- */
 function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
-  const [activeTab, setActiveTab] = useState<'delivery' | 'admin' | 'ai'>('delivery');
+  const [activeTab, setActiveTab] = useState<'invoices' | 'repairs' | 'feedback' | 'delivery'>('invoices');
   const [usernameInput, setUsernameInput] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -838,10 +837,10 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
             </div>
             <div>
               <span className="text-xl font-black bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                I-STORE ERP
+                I-STORE Admin Panel
               </span>
               <span className="ml-2 text-xs bg-cyan-500/10 text-cyan-500 border border-cyan-500/30 px-2 py-0.5 rounded-full font-bold">
-                Backend Delivery Engine
+                Cloud ERP Dashboard
               </span>
             </div>
           </div>
@@ -853,128 +852,370 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 capitalize">{usernameInput} · {authedRole}</span>
             </div>
             <Link to="/" className="text-xs text-cyan-500 font-bold hover:underline">
-              Back to Landing Page ➔
+              ← Customer Portal
             </Link>
           </div>
         </div>
       </header>
 
       <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-6 space-y-6">
+        {/* Tab Navigation */}
         <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md">
-          <button
-            onClick={() => setActiveTab('delivery')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-              activeTab === 'delivery' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-600 dark:text-slate-400 hover:text-cyan-500'
-            }`}
-          >
-            <Send className="w-4 h-4" />
-            <span>Delivery Templates (WhatsApp/Email)</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('admin')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-              activeTab === 'admin' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-600 dark:text-slate-400 hover:text-cyan-500'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>Delivery Analytics</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('ai')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-              activeTab === 'ai' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-600 dark:text-slate-400 hover:text-cyan-500'
-            }`}
-          >
-            <Bot className="w-4 h-4" />
-            <span>AI Sales Assistant</span>
-          </button>
+          {([
+            { id: 'invoices', label: 'Live Invoices', icon: <ReceiptText className="w-4 h-4" /> },
+            { id: 'repairs', label: 'Repair Tickets', icon: <Wrench className="w-4 h-4" /> },
+            { id: 'feedback', label: 'Customer Feedback', icon: <Star className="w-4 h-4" /> },
+            { id: 'delivery', label: 'Delivery Stats', icon: <BarChart3 className="w-4 h-4" /> },
+          ] as const).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+                activeTab === tab.id ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-600 dark:text-slate-400 hover:text-cyan-500'
+              }`}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
 
+        {/* Live Invoices Tab */}
+        {activeTab === 'invoices' && (
+          <LiveInvoicesPanel supabase={supabase} />
+        )}
+
+        {/* Repair Tickets Tab */}
+        {activeTab === 'repairs' && (
+          <LiveRepairsPanel supabase={supabase} />
+        )}
+
+        {/* Customer Feedback Tab */}
+        {activeTab === 'feedback' && (
+          <LiveFeedbackPanel supabase={supabase} />
+        )}
+
+        {/* Delivery Stats Tab */}
         {activeTab === 'delivery' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
-              <div className="flex items-center space-x-3 text-emerald-500">
-                <MessageSquare className="w-6 h-6" />
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">WhatsApp Message Payload</h3>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 font-sans text-xs">
-                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl text-slate-800 dark:text-slate-200 space-y-2">
-                  <p className="font-bold text-emerald-600 dark:text-emerald-500">ABC Mobile / I-Store POS</p>
-                  <p>Thank you for your purchase!</p>
-                  <p className="font-mono text-cyan-600 dark:text-cyan-500">Your invoice: https://i-store-customer-portal-one.vercel.app/invoice/INV-2026-8942</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
-              <div className="flex items-center space-x-3 text-cyan-500">
-                <Mail className="w-6 h-6" />
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">Email Notification Payload</h3>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 text-xs">
-                <div className="border-b border-slate-200 dark:border-slate-800 pb-2 text-slate-500">
-                  <p>Subject: Your invoice from ABC Mobile #INV-2026-8942</p>
-                </div>
-                <div className="space-y-2 text-slate-700 dark:text-slate-300">
-                  <p className="font-bold text-slate-900 dark:text-white">Digital Receipt Ready</p>
-                  <div className="pt-2">
-                    <Link to="/invoice/INV-2026-8942?token=sec_98a71b" className="px-3 py-1.5 bg-cyan-600 text-white font-bold rounded-lg text-xs">
-                      Open Receipt
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'admin' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                <span className="text-xs text-slate-500 font-bold block">Today's Bills</span>
-                <span className="text-2xl font-black text-slate-900 dark:text-white mt-1 block">154</span>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                <span className="text-xs text-slate-500 font-bold block">Emails Sent</span>
-                <span className="text-2xl font-black text-cyan-500 mt-1 block">130</span>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                <span className="text-xs text-slate-500 font-bold block">WhatsApp Sent</span>
-                <span className="text-2xl font-black text-emerald-500 mt-1 block">145</span>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                <span className="text-xs text-slate-500 font-bold block">Failed Delivery</span>
-                <span className="text-2xl font-black text-rose-500 mt-1 block">2</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'ai' && (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl max-w-xl mx-auto">
-            <div className="flex items-center space-x-3 text-cyan-500">
-              <Bot className="w-6 h-6" />
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">AI Support Assistant</h3>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 text-xs">
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
-                <span className="font-bold text-cyan-500 block mb-1">Customer Question:</span>
-                "What is my warranty status?"
-              </div>
-              <div className="bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/60 p-3 rounded-xl text-slate-800 dark:text-slate-200">
-                <span className="font-bold text-cyan-600 dark:text-cyan-400 block mb-1">AI Assistant Response:</span>
-                "Your warranty for iPhone 15 Pro Max is active for 12 months."
-              </div>
-            </div>
-          </div>
+          <LiveDeliveryStatsPanel supabase={supabase} />
         )}
       </main>
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* ADMIN PANEL SUB-COMPONENTS (Live Supabase Data)                            */
+/* -------------------------------------------------------------------------- */
+
+function LiveInvoicesPanel({ supabase }: { supabase: any }) {
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const fetch = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('invoices')
+        .select('id, customer_name, customer_phone, total, status, payment_method, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setInvoices(data || []);
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
+  const filtered = invoices.filter(inv =>
+    inv.id?.toLowerCase().includes(search.toLowerCase()) ||
+    inv.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+    inv.customer_phone?.includes(search)
+  );
+
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
+          <ReceiptText className="w-5 h-5 text-cyan-500" />
+          <span>Live Cloud Invoices</span>
+          <span className="text-[10px] bg-cyan-500/10 text-cyan-500 border border-cyan-500/30 px-2 py-0.5 rounded-full font-bold">{invoices.length} total</span>
+        </h3>
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by ID, name, phone..."
+          className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-cyan-500 text-slate-900 dark:text-white w-full sm:w-64"
+        />
+      </div>
+      {loading ? (
+        <p className="text-xs text-slate-500 text-center py-8">Loading invoices from cloud...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-xs text-slate-500 text-center py-8">No invoices found.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 text-left">
+                <th className="pb-3 font-semibold pr-4">Invoice ID</th>
+                <th className="pb-3 font-semibold pr-4">Customer</th>
+                <th className="pb-3 font-semibold pr-4">Phone</th>
+                <th className="pb-3 font-semibold pr-4">Total</th>
+                <th className="pb-3 font-semibold pr-4">Method</th>
+                <th className="pb-3 font-semibold pr-4">Status</th>
+                <th className="pb-3 font-semibold pr-4">Date</th>
+                <th className="pb-3 font-semibold">Link</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {filtered.map(inv => (
+                <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                  <td className="py-3 pr-4 font-mono font-bold text-cyan-600 dark:text-cyan-400">{inv.id}</td>
+                  <td className="py-3 pr-4 text-slate-900 dark:text-slate-100 font-semibold">{inv.customer_name}</td>
+                  <td className="py-3 pr-4 text-slate-600 dark:text-slate-400">{inv.customer_phone}</td>
+                  <td className="py-3 pr-4 font-bold text-slate-900 dark:text-white">LKR {Number(inv.total).toLocaleString()}</td>
+                  <td className="py-3 pr-4 text-slate-600 dark:text-slate-400">{inv.payment_method}</td>
+                  <td className="py-3 pr-4">
+                    <span className={`px-2 py-0.5 rounded-full font-bold ${inv.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
+                      {inv.status}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4 text-slate-500">{new Date(inv.created_at).toLocaleDateString()}</td>
+                  <td className="py-3">
+                    <Link to={`/invoice/${inv.id}`} className="text-cyan-500 hover:underline font-bold">View ↗</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveRepairsPanel({ supabase }: { supabase: any }) {
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const statusFlow = ['Submitted', 'In Inspection', 'In Repair', 'Completed', 'Delivered'];
+  const statusColors: Record<string, string> = {
+    'Submitted': 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    'In Inspection': 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    'In Repair': 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    'Completed': 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    'Delivered': 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  };
+
+  const loadTickets = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('repair_tickets')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setTickets(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadTickets(); }, []);
+
+  const advanceStatus = async (ticket: any) => {
+    const nextIdx = statusFlow.indexOf(ticket.status) + 1;
+    if (nextIdx >= statusFlow.length) return;
+    const nextStatus = statusFlow[nextIdx];
+    setUpdatingId(ticket.id);
+    await supabase.from('repair_tickets').update({ status: nextStatus }).eq('id', ticket.id);
+    await loadTickets();
+    setUpdatingId(null);
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+      <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
+        <Wrench className="w-5 h-5 text-amber-500" />
+        <span>Repair Ticket Management</span>
+        <span className="text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">{tickets.length} tickets</span>
+      </h3>
+      {loading ? (
+        <p className="text-xs text-slate-500 text-center py-8">Loading repair tickets...</p>
+      ) : tickets.length === 0 ? (
+        <p className="text-xs text-slate-500 text-center py-8">No repair tickets submitted yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {tickets.map(t => (
+            <div key={t.id} className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="font-mono font-bold text-xs text-amber-600 dark:text-amber-400">{t.id}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${statusColors[t.status] || ''}`}>{t.status}</span>
+                </div>
+                <p className="text-xs font-semibold text-slate-900 dark:text-white">{t.device_name} <span className="text-slate-400">·</span> {t.customer_phone}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">{t.issue_description}</p>
+                <p className="text-[10px] text-slate-400">{new Date(t.created_at).toLocaleString()}</p>
+              </div>
+              {t.status !== 'Delivered' && (
+                <button
+                  onClick={() => advanceStatus(t)}
+                  disabled={updatingId === t.id}
+                  className="px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-bold rounded-xl border border-cyan-500/30 text-xs transition disabled:opacity-50"
+                >
+                  {updatingId === t.id ? 'Updating...' : `→ ${statusFlow[statusFlow.indexOf(t.status) + 1]}`}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveFeedbackPanel({ supabase }: { supabase: any }) {
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetch = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('customer_feedback')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setFeedbacks(data || []);
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
+  const avg = feedbacks.length > 0
+    ? (feedbacks.reduce((s, f) => s + (f.rating || 0), 0) / feedbacks.length).toFixed(1)
+    : '—';
+
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
+          <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+          <span>Customer Feedback & Ratings</span>
+        </h3>
+        {feedbacks.length > 0 && (
+          <div className="flex items-center space-x-1.5 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-1.5">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            <span className="text-sm font-black text-amber-600 dark:text-amber-400">{avg} avg</span>
+            <span className="text-[10px] text-slate-500">({feedbacks.length} reviews)</span>
+          </div>
+        )}
+      </div>
+      {loading ? (
+        <p className="text-xs text-slate-500 text-center py-8">Loading feedback...</p>
+      ) : feedbacks.length === 0 ? (
+        <p className="text-xs text-slate-500 text-center py-8">No customer feedback received yet. Ratings will appear here as customers rate their receipts.</p>
+      ) : (
+        <div className="space-y-3">
+          {feedbacks.map((f, i) => (
+            <div key={i} className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-slate-900 dark:text-white">{f.customer_phone || 'Anonymous'}</p>
+                <p className="text-[11px] text-slate-500 font-mono">{f.invoice_id}</p>
+                {f.comment && <p className="text-xs text-slate-600 dark:text-slate-400 italic">"{f.comment}"</p>}
+                <p className="text-[10px] text-slate-400">{new Date(f.created_at).toLocaleString()}</p>
+              </div>
+              <div className="flex space-x-0.5 shrink-0">
+                {[1,2,3,4,5].map(s => (
+                  <Star key={s} className={`w-4 h-4 ${s <= (f.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-300 dark:text-slate-700'}`} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveDeliveryStatsPanel({ supabase }: { supabase: any }) {
+  const [stats, setStats] = useState({ totalInvoices: 0, todayInvoices: 0, totalRevenue: 0, pendingRepairs: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetch = async () => {
+      setLoading(true);
+      const today = new Date().toISOString().split('T')[0];
+      const [allInv, todayInv, repairs] = await Promise.all([
+        supabase.from('invoices').select('total', { count: 'exact' }),
+        supabase.from('invoices').select('id', { count: 'exact' }).gte('created_at', today),
+        supabase.from('repair_tickets').select('id', { count: 'exact' }).neq('status', 'Delivered'),
+      ]);
+      const totalRevenue = (allInv.data || []).reduce((s: number, r: any) => s + Number(r.total || 0), 0);
+      setStats({
+        totalInvoices: allInv.count || 0,
+        todayInvoices: todayInv.count || 0,
+        totalRevenue,
+        pendingRepairs: repairs.count || 0,
+      });
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
+  const cards = [
+    { label: "Total Cloud Invoices", value: stats.totalInvoices, color: "text-cyan-500", bg: "bg-cyan-500/10" },
+    { label: "Invoices Today", value: stats.todayInvoices, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Total Revenue (LKR)", value: `${(stats.totalRevenue).toLocaleString()}`, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { label: "Pending Repairs", value: stats.pendingRepairs, color: "text-amber-500", bg: "bg-amber-500/10" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {cards.map(c => (
+          <div key={c.label} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <span className="text-[11px] text-slate-500 font-semibold block">{c.label}</span>
+            {loading ? (
+              <span className="text-lg font-black text-slate-400 mt-1 block animate-pulse">—</span>
+            ) : (
+              <span className={`text-2xl font-black mt-1 block ${c.color}`}>{c.value}</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xl">
+        <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-4 flex items-center space-x-2">
+          <Send className="w-4 h-4 text-emerald-500" />
+          <span>WhatsApp Smart Bill Delivery</span>
+        </h4>
+        <div className="space-y-3 text-xs text-slate-600 dark:text-slate-400">
+          <div className="flex items-center space-x-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3">
+            <MessageSquare className="w-4 h-4 text-emerald-500 shrink-0" />
+            <div>
+              <p className="font-bold text-emerald-600 dark:text-emerald-400">Zero-Cost WhatsApp Delivery Active</p>
+              <p>Smart Bill links are shared via WhatsApp deep-link — no paid API needed.</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-3">
+            <ReceiptText className="w-4 h-4 text-cyan-500 shrink-0" />
+            <div>
+              <p className="font-bold text-cyan-600 dark:text-cyan-400">Auto-Sync on Every POS Checkout</p>
+              <p>Invoices are automatically pushed to the cloud the moment a sale is completed in the POS software.</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 bg-purple-500/5 border border-purple-500/20 rounded-xl p-3">
+            <ShieldCheck className="w-4 h-4 text-purple-500 shrink-0" />
+            <div>
+              <p className="font-bold text-purple-600 dark:text-purple-400">Warranty & Repair Tracking Live</p>
+              <p>Customers can view warranty status and submit repair tickets directly from their digital bill.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export function App() {
   const [isDark, setIsDark] = useState(() => (localStorage.getItem("theme") ?? "dark") === "dark");

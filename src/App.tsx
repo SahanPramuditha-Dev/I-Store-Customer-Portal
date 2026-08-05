@@ -15,10 +15,12 @@ import {
   MessageSquare,
   Bot,
   BarChart3,
-  CheckCheck,
   Star,
   Sun,
-  Moon
+  Moon,
+  ShieldCheck,
+  Search,
+  ArrowRight
 } from 'lucide-react';
 
 interface InvoiceItem {
@@ -78,10 +80,195 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
     <button
       onClick={onToggle}
       title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      className="p-2 rounded-xl bg-slate-800/60 dark:bg-slate-800 hover:bg-slate-700/80 dark:hover:bg-slate-700 text-amber-400 dark:text-cyan-400 border border-slate-700/60 transition shadow-sm"
+      className="p-2.5 rounded-xl bg-slate-800/60 dark:bg-slate-800 light:bg-slate-100 hover:bg-slate-700/80 dark:hover:bg-slate-700 text-amber-400 dark:text-cyan-400 border border-slate-700/60 dark:border-slate-700 light:border-slate-300 transition shadow-sm"
     >
       {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
     </button>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* REAL LANDING PAGE (Root URL: /)                                            */
+/* -------------------------------------------------------------------------- */
+function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
+  const [searchId, setSearchId] = useState('');
+  const [phoneLogin, setPhoneLogin] = useState('');
+  const [otpMode, setOtpMode] = useState(false);
+  const [userLoggedIn, setUserLoggedIn] = useState(false);
+
+  return (
+    <div className="min-h-screen flex flex-col font-sans transition-colors duration-300">
+      {/* Top Header */}
+      <header className="border-b border-slate-800 dark:border-slate-800 light:border-slate-200 bg-slate-900/80 dark:bg-slate-900/80 light:bg-white/80 backdrop-blur-xl sticky top-0 z-50 px-4 py-3.5">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2.5 rounded-2xl text-white shadow-lg shadow-cyan-500/20">
+              <Smartphone className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-xl font-black bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                I-STORE
+              </span>
+              <span className="ml-2 text-xs bg-cyan-500/10 text-cyan-500 border border-cyan-500/30 px-2.5 py-0.5 rounded-full font-bold">
+                Customer Care & Services
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+            <Link
+              to="/invoice/INV-2026-8942?token=sec_98a71b"
+              className="hidden sm:flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 rounded-xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25 transition"
+            >
+              <Receipt className="w-4 h-4" />
+              <span>Sample Smart Bill</span>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 space-y-12">
+        
+        <div className="text-center max-w-3xl mx-auto space-y-4 pt-4">
+          <div className="inline-flex items-center space-x-2 bg-cyan-500/10 border border-cyan-500/30 px-3.5 py-1.5 rounded-full text-xs font-bold text-cyan-500">
+            <Sparkles className="w-4 h-4" />
+            <span>Digital Receipts & Warranty Self-Service Portal</span>
+          </div>
+
+          <h1 className="text-3xl md:text-5xl font-black text-slate-100 dark:text-white light:text-slate-900 tracking-tight leading-tight">
+            Track Purchases, Claims & Warranties in One Place
+          </h1>
+          <p className="text-sm md:text-base text-slate-400 dark:text-slate-400 light:text-slate-600">
+            Received an SMS or WhatsApp invoice link? Lookup your receipt details instantly or sign in with your phone number.
+          </p>
+
+          {/* Quick Invoice Lookup Bar */}
+          <div className="max-w-xl mx-auto pt-4">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchId.trim()) {
+                  window.location.href = `/invoice/INV-2026-8942?token=sec_98a71b`;
+                }
+              }}
+              className="flex items-center bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-300 p-2 rounded-2xl shadow-xl"
+            >
+              <div className="pl-3 text-slate-500">
+                <Search className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                value={searchId}
+                onChange={(e) => setSearchId(e.target.value)}
+                placeholder="Enter Invoice Number (e.g. INV-2026-8942)"
+                className="w-full bg-transparent border-none px-3 py-2 text-sm text-slate-100 dark:text-white light:text-slate-900 focus:outline-none placeholder:text-slate-500"
+              />
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shrink-0 shadow-md shadow-cyan-500/20"
+              >
+                <span>Find Bill</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Feature Grid for Customers */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Feature 1 */}
+          <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 p-6 rounded-3xl space-y-3 shadow-xl">
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-500">
+              <Receipt className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-lg text-slate-100 dark:text-white light:text-slate-900">Digital Invoices</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
+              No paper receipts needed! Access verified digital receipts anytime via WhatsApp, SMS, or direct links.
+            </p>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 p-6 rounded-3xl space-y-3 shadow-xl">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-lg text-slate-100 dark:text-white light:text-slate-900">Warranty Tracking</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
+              Every purchased mobile & accessory serial number / IMEI is automatically backed up for instant warranty checks.
+            </p>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 p-6 rounded-3xl space-y-3 shadow-xl">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+              <Wrench className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-lg text-slate-100 dark:text-white light:text-slate-900">Online Repair Tickets</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
+              Device issue? Request repairs online and track real-time progress from technician inspection to completion.
+            </p>
+          </div>
+        </div>
+
+        {/* Customer Self-Service Account Box */}
+        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 dark:from-slate-900 dark:to-indigo-950/40 light:from-white light:to-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-3xl p-6 md:p-8 shadow-2xl max-w-xl mx-auto space-y-5">
+          <div className="text-center space-y-1">
+            <h2 className="text-xl font-bold text-slate-100 dark:text-white light:text-slate-900">Sign In to Customer Account</h2>
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600">Enter your phone number to view all past invoices & warranties.</p>
+          </div>
+
+          {!userLoggedIn ? (
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={phoneLogin}
+                onChange={(e) => setPhoneLogin(e.target.value)}
+                placeholder="Mobile Number (e.g. +94 77 123 4567)"
+                className="w-full bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 rounded-xl px-4 py-3 text-xs text-slate-100 dark:text-white light:text-slate-900 focus:outline-none"
+              />
+
+              {!otpMode ? (
+                <button
+                  onClick={() => setOtpMode(true)}
+                  className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/25"
+                >
+                  Send OTP Code
+                </button>
+              ) : (
+                <button
+                  onClick={() => setUserLoggedIn(true)}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-500/25"
+                >
+                  Verify Passcode & Enter Portal
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="text-center space-y-3 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+              <p className="text-xs font-bold text-emerald-400">Welcome Back, Kasun Perera!</p>
+              <div className="flex justify-center space-x-2">
+                <Link
+                  to="/invoice/INV-2026-8942?token=sec_98a71b"
+                  className="px-4 py-2 bg-cyan-600 text-white rounded-xl text-xs font-bold"
+                >
+                  View Purchases & Receipts
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-800 dark:border-slate-800 light:border-slate-200 bg-slate-900/40 text-center py-6 text-xs text-slate-500">
+        <p>© 2026 I-Store Electronics. Customer Smart Bill & Portal Engine.</p>
+        <div className="mt-2 flex justify-center space-x-4 text-[11px]">
+          <Link to="/demo-hub" className="text-cyan-500 hover:underline font-semibold">ERP System Demo & Admin Hub ➔</Link>
+        </div>
+      </footer>
+    </div>
   );
 }
 
@@ -259,10 +446,10 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
                 Request Repair
               </button>
               <Link
-                to="/portal"
+                to="/"
                 className="px-4 py-2 bg-slate-800 dark:bg-slate-800 light:bg-white text-slate-200 dark:text-slate-200 light:text-slate-800 font-semibold rounded-xl border border-slate-700 dark:border-slate-700 light:border-slate-300 transition flex items-center space-x-1"
               >
-                <span>Customer Portal</span>
+                <span>Back to Home</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
@@ -314,14 +501,13 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
 }
 
 /* -------------------------------------------------------------------------- */
-/* MAIN DASHBOARD: DEMO HUB FOR ALL 10 FEATURES                               */
+/* DEMO HUB: FOR TESTING ALL FEATURES & BACKEND SIMULATION                   */
 /* -------------------------------------------------------------------------- */
 function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const [activeTab, setActiveTab] = useState<'delivery' | 'admin' | 'ai'>('delivery');
 
   return (
     <div className="min-h-screen flex flex-col font-sans transition-colors duration-300">
-      {/* Top Header */}
       <header className="border-b border-slate-800 dark:border-slate-800 light:border-slate-200 bg-slate-900/60 dark:bg-slate-900/60 light:bg-white/80 backdrop-blur-xl sticky top-0 z-50 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -333,29 +519,21 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
                 I-STORE ERP
               </span>
               <span className="ml-2 text-xs bg-cyan-500/10 text-cyan-500 border border-cyan-500/30 px-2 py-0.5 rounded-full font-bold">
-                Smart Bill Suite
+                Backend System Hub
               </span>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
             <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
-
-            <Link
-              to="/invoice/INV-2026-8942?token=sec_98a71b"
-              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 rounded-xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25 transition"
-            >
-              <Receipt className="w-4 h-4" />
-              <span>Open Online Receipt Link</span>
+            <Link to="/" className="text-xs text-cyan-500 font-bold hover:underline">
+              Back to Store Landing ➔
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
       <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-6 space-y-6">
-        
-        {/* Feature Selector Tabs */}
         <div className="flex flex-wrap items-center gap-2 bg-slate-900 dark:bg-slate-900 light:bg-white p-2 rounded-2xl border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-md">
           <button
             onClick={() => setActiveTab('delivery')}
@@ -388,10 +566,8 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
           </button>
         </div>
 
-        {/* FEATURE 3: SMART DELIVERY CHANNELS */}
         {activeTab === 'delivery' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-            {/* WhatsApp Preview Card */}
             <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-3xl p-6 space-y-4 shadow-xl">
               <div className="flex items-center space-x-3 text-emerald-500">
                 <MessageSquare className="w-6 h-6" />
@@ -402,28 +578,17 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
                   <p className="font-bold text-emerald-500">ABC Mobile / I-Store POS</p>
                   <p>Thank you for shopping with ABC Mobile, Kasun Perera!</p>
                   <p className="font-mono text-cyan-500">Your invoice: https://store.com/i/7Hd82k</p>
-                  <p className="font-mono text-cyan-500">Warranty details: https://store.com/w/7Hd82k</p>
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
-                  <span className="flex items-center space-x-1">
-                    <CheckCheck className="w-4 h-4 text-cyan-500" />
-                    <span>Delivered & Read</span>
-                  </span>
-                  <button onClick={() => alert('WhatsApp resent!')} className="text-cyan-500 hover:underline">
-                    Resend Message
-                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Email Preview Card */}
             <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-3xl p-6 space-y-4 shadow-xl">
               <div className="flex items-center space-x-3 text-cyan-500">
                 <Mail className="w-6 h-6" />
                 <h3 className="font-bold text-base text-slate-100 dark:text-white light:text-slate-900">Email Delivery Template</h3>
               </div>
               <div className="bg-slate-950 dark:bg-slate-950 light:bg-slate-50 p-4 rounded-2xl border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-3 text-xs">
-                <div className="border-b border-slate-800 dark:border-slate-800 light:border-slate-200 pb-2 text-slate-400 dark:text-slate-400 light:text-slate-600">
+                <div className="border-b border-slate-800 dark:border-slate-800 light:border-slate-200 pb-2 text-slate-400">
                   <p><span className="text-slate-500">Subject:</span> Your invoice from ABC Mobile #INV-2026-8942</p>
                 </div>
                 <div className="space-y-2 text-slate-300 dark:text-slate-300 light:text-slate-700">
@@ -433,9 +598,6 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
                     <Link to="/invoice/INV-2026-8942?token=sec_98a71b" className="px-3 py-1.5 bg-cyan-600 text-white font-bold rounded-lg text-xs">
                       View Online Invoice
                     </Link>
-                    <button onClick={() => window.print()} className="px-3 py-1.5 bg-slate-800 dark:bg-slate-800 light:bg-slate-200 text-slate-200 dark:text-slate-200 light:text-slate-800 font-semibold rounded-lg text-xs">
-                      Download PDF
-                    </button>
                   </div>
                 </div>
               </div>
@@ -443,46 +605,43 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
           </div>
         )}
 
-        {/* FEATURE 9: ADMIN DASHBOARD */}
         {activeTab === 'admin' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Analytics Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-2xl p-4 shadow-sm">
-                <span className="text-xs text-slate-500 dark:text-slate-500 light:text-slate-600 font-bold block">Today's Bills</span>
+                <span className="text-xs text-slate-500 font-bold block">Today's Bills</span>
                 <span className="text-2xl font-black text-slate-100 dark:text-white light:text-slate-900 mt-1 block">154</span>
               </div>
               <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-2xl p-4 shadow-sm">
-                <span className="text-xs text-slate-500 dark:text-slate-500 light:text-slate-600 font-bold block">Emails Sent</span>
+                <span className="text-xs text-slate-500 font-bold block">Emails Sent</span>
                 <span className="text-2xl font-black text-cyan-500 mt-1 block">130</span>
               </div>
               <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-2xl p-4 shadow-sm">
-                <span className="text-xs text-slate-500 dark:text-slate-500 light:text-slate-600 font-bold block">WhatsApp Sent</span>
+                <span className="text-xs text-slate-500 font-bold block">WhatsApp Sent</span>
                 <span className="text-2xl font-black text-emerald-500 mt-1 block">145</span>
               </div>
               <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-2xl p-4 shadow-sm">
-                <span className="text-xs text-slate-500 dark:text-slate-500 light:text-slate-600 font-bold block">Failed Delivery</span>
+                <span className="text-xs text-slate-500 font-bold block">Failed Delivery</span>
                 <span className="text-2xl font-black text-rose-500 mt-1 block">2</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* FEATURE 10: AI ASSISTANT */}
         {activeTab === 'ai' && (
           <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-3xl p-6 space-y-4 shadow-2xl max-w-xl mx-auto">
             <div className="flex items-center space-x-3 text-cyan-500">
               <Bot className="w-6 h-6" />
-              <h3 className="font-bold text-base text-slate-100 dark:text-white light:text-slate-900">AI Sales & Warranty Support Assistant</h3>
+              <h3 className="font-bold text-base text-slate-100 dark:text-white light:text-slate-900">AI Sales & Warranty Assistant</h3>
             </div>
             <div className="bg-slate-950 dark:bg-slate-950 light:bg-slate-50 p-4 rounded-2xl border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-3 text-xs">
-              <div className="bg-slate-900 dark:bg-slate-900 light:bg-white p-3 rounded-xl border border-slate-800 dark:border-slate-800 light:border-slate-200 text-slate-300 dark:text-slate-300 light:text-slate-700">
+              <div className="bg-slate-900 dark:bg-slate-900 light:bg-white p-3 rounded-xl border border-slate-800 text-slate-300">
                 <span className="font-bold text-cyan-500 block mb-1">Customer Question:</span>
                 "I bought a phone last year. What model was it and when does warranty expire?"
               </div>
-              <div className="bg-cyan-950/40 dark:bg-cyan-950/40 light:bg-cyan-50 border border-cyan-800/60 dark:border-cyan-800/60 light:border-cyan-200 p-3 rounded-xl text-slate-200 dark:text-slate-200 light:text-slate-800">
+              <div className="bg-cyan-950/40 border border-cyan-800/60 p-3 rounded-xl text-slate-200">
                 <span className="font-bold text-cyan-500 block mb-1">AI Assistant Response:</span>
-                "You purchased the <span className="font-bold text-slate-100 dark:text-white light:text-slate-900">Samsung A54 5G</span> on March 12, 2025. Your warranty expires in <span className="text-emerald-500 font-bold">34 days</span>!"
+                "You purchased the <span className="font-bold text-white">Samsung A54 5G</span> on March 12, 2025. Your warranty expires in <span className="text-emerald-500 font-bold">34 days</span>!"
               </div>
             </div>
           </div>
@@ -509,10 +668,11 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<AllFeaturesHub isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/invoice/:id" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/i/:shortCode" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
-        <Route path="/portal" element={<AllFeaturesHub isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/portal" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/demo-hub" element={<AllFeaturesHub isDark={isDark} toggleTheme={toggleTheme} />} />
       </Routes>
     </BrowserRouter>
   );

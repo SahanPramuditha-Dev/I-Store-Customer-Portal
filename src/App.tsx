@@ -178,17 +178,6 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
               </button>
             </form>
 
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-              <span className="text-xs text-slate-600 dark:text-slate-400">Quick Test:</span>
-              <button
-                type="button"
-                onClick={() => setSearchId('INV-2026-8942')}
-                className="text-xs bg-slate-200 dark:bg-slate-800 text-cyan-700 dark:text-cyan-400 px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 font-mono font-bold hover:underline"
-              >
-                INV-2026-8942
-              </button>
-            </div>
-
             {searchError && (
               <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-2">{searchError}</p>
             )}

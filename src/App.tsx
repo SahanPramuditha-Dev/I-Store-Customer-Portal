@@ -1,33 +1,22 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, useParams, useSearchParams, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { BrowserRouter, Routes, Route, useParams, Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   Receipt, 
-  ShieldCheck, 
   Wrench, 
   Download, 
   Printer, 
   CheckCircle2, 
   Smartphone,
   Sparkles,
-  MapPin,
-  Sun,
-  Lock,
   ChevronRight,
-  UserCheck,
   Send,
   Mail,
   MessageSquare,
   Bot,
   BarChart3,
-  Bell,
   CheckCheck,
-  RefreshCw,
-  Search,
-  PlusCircle,
-  FileText,
-  Star,
-  Cpu
+  Star
 } from 'lucide-react';
 
 interface InvoiceItem {
@@ -84,8 +73,6 @@ const MOCK_INVOICES: Record<string, Invoice> = {
 /* -------------------------------------------------------------------------- */
 function PublicInvoicePage() {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
   const [repairModalOpen, setRepairModalOpen] = useState(false);
 
   const invoice = id ? MOCK_INVOICES[id] : MOCK_INVOICES['INV-2026-8942'];

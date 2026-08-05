@@ -57,9 +57,13 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
     <button
       onClick={onToggle}
       title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      className="p-2.5 rounded-2xl bg-slate-200 dark:bg-slate-800 text-amber-600 dark:text-cyan-400 border border-slate-300 dark:border-slate-700 transition-all duration-200 shadow-sm shrink-0 hover:scale-105"
+      className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-amber-400 border border-slate-300 dark:border-slate-700 transition-all duration-200 shadow-sm shrink-0 hover:scale-105 flex items-center justify-center"
     >
-      {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+      {isDark ? (
+        <Sun className="w-5 h-5 text-amber-400 fill-amber-400/20" />
+      ) : (
+        <Moon className="w-5 h-5 text-indigo-600 fill-indigo-600/20" />
+      )}
     </button>
   );
 }

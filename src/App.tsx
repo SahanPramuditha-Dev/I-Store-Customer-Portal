@@ -70,7 +70,6 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
 function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const [searchId, setSearchId] = useState('');
   const [phoneLogin, setPhoneLogin] = useState('');
-  const [otpMode, setOtpMode] = useState(false);
   const [userLoggedIn, setUserLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -241,20 +240,20 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
           </div>
         </div>
 
-        {/* Self-Service Sign-In Box */}
+        {/* Self-Service Sign-In Box - Zero-Cost PIN Verification */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl max-w-xl mx-auto space-y-5">
           <div className="text-center space-y-1.5">
             <div className="w-11 h-11 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto text-white shadow-md shadow-cyan-500/30 mb-2">
               <Smartphone className="w-5 h-5" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Access Customer Portal</h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400">Enter your registered phone number to view your complete purchase history.</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Customer Self-Service Portal</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-400">Sign in securely with your mobile number & invoice security PIN.</p>
           </div>
 
           {!userLoggedIn ? (
             <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Mobile Phone Number</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Registered Phone Number</label>
                 <input
                   type="text"
                   value={phoneLogin}
@@ -264,29 +263,33 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                 />
               </div>
 
-              {!otpMode ? (
-                <button
-                  onClick={() => setOtpMode(true)}
-                  className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-bold rounded-2xl text-xs shadow-lg shadow-cyan-500/25 transition active:scale-95"
-                >
-                  Send One-Time Passcode (OTP)
-                </button>
-              ) : (
-                <button
-                  onClick={() => setUserLoggedIn(true)}
-                  className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-2xl text-xs shadow-lg shadow-emerald-500/25 transition active:scale-95"
-                >
-                  Verify Passcode & Enter Portal
-                </button>
-              )}
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Invoice PIN (Last 4 Digits of any Receipt #)</label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
+                  placeholder="e.g. 8942"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl px-4 py-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono tracking-widest text-center font-bold"
+                />
+              </div>
+
+              <button
+                onClick={() => setUserLoggedIn(true)}
+                className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 text-white font-bold rounded-2xl text-xs shadow-lg shadow-emerald-500/25 transition active:scale-95 flex items-center justify-center space-x-2"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Verify Security PIN & Enter Portal</span>
+              </button>
             </div>
           ) : (
             <div className="text-center space-y-4 bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
                 <CheckCircle2 className="w-5 h-5" />
-                <span>Customer Account Verified</span>
+                <span>Customer Verified (Zero-Cost Verification)</span>
               </div>
-              <p className="text-xs text-slate-500">Connected to Supabase Database</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Viewing purchase history connected to Supabase Cloud</p>
             </div>
           )}
         </div>

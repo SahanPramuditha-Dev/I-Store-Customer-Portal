@@ -20,7 +20,9 @@ import {
   Moon,
   ShieldCheck,
   Search,
-  ArrowRight
+  ArrowRight,
+  Zap,
+  FileCheck
 } from 'lucide-react';
 
 interface InvoiceItem {
@@ -72,15 +74,12 @@ const MOCK_INVOICES: Record<string, Invoice> = {
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/* THEME TOGGLE BUTTON COMPONENT                                             */
-/* -------------------------------------------------------------------------- */
 function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={onToggle}
       title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      className="p-2.5 rounded-xl bg-slate-800/60 dark:bg-slate-800 light:bg-slate-100 hover:bg-slate-700/80 dark:hover:bg-slate-700 text-amber-400 dark:text-cyan-400 border border-slate-700/60 dark:border-slate-700 light:border-slate-300 transition shadow-sm"
+      className="p-2.5 rounded-2xl bg-slate-800/80 dark:bg-slate-800/80 light:bg-slate-100 hover:bg-slate-700 text-amber-400 dark:text-cyan-400 border border-slate-700/80 dark:border-slate-700 light:border-slate-300 transition-all duration-200 shadow-md"
     >
       {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
     </button>
@@ -88,7 +87,7 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
 }
 
 /* -------------------------------------------------------------------------- */
-/* REAL LANDING PAGE (Root URL: /)                                            */
+/* NEXT-GEN APPLE/STRIPE-LEVEL LANDING PAGE                                   */
 /* -------------------------------------------------------------------------- */
 function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const [searchId, setSearchId] = useState('');
@@ -97,21 +96,29 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
   const [userLoggedIn, setUserLoggedIn] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col font-sans transition-colors duration-300">
-      {/* Top Header */}
-      <header className="border-b border-slate-800 dark:border-slate-800 light:border-slate-200 bg-slate-900/80 dark:bg-slate-900/80 light:bg-white/80 backdrop-blur-xl sticky top-0 z-50 px-4 py-3.5">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-300 overflow-x-hidden">
+      
+      {/* Background Decorative Mesh Orbs */}
+      <div className="fixed top-[-100px] left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-tr from-cyan-500/15 via-blue-600/10 to-indigo-600/15 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+      <div className="fixed bottom-0 right-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+
+      {/* Glassmorphic Navbar */}
+      <header className="border-b border-slate-800/60 dark:border-slate-800/60 light:border-slate-200/80 bg-slate-950/70 dark:bg-slate-950/70 light:bg-white/70 backdrop-blur-2xl sticky top-0 z-50 px-4 md:px-8 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2.5 rounded-2xl text-white shadow-lg shadow-cyan-500/20">
+            <div className="bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 p-3 rounded-2xl text-white shadow-xl shadow-cyan-500/25 ring-1 ring-white/20">
               <Smartphone className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-xl font-black bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                I-STORE
-              </span>
-              <span className="ml-2 text-xs bg-cyan-500/10 text-cyan-500 border border-cyan-500/30 px-2.5 py-0.5 rounded-full font-bold">
-                Customer Care & Services
-              </span>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl font-black tracking-tight bg-gradient-to-r from-slate-100 via-white to-cyan-400 dark:from-white dark:to-cyan-400 light:from-slate-900 light:to-cyan-600 bg-clip-text text-transparent">
+                  I-STORE
+                </span>
+                <span className="text-[10px] uppercase font-extrabold tracking-widest bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2.5 py-0.5 rounded-full">
+                  ERP Nexius
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 dark:text-slate-400 light:text-slate-500 font-medium">Smart Bill & Customer Self-Service</p>
             </div>
           </div>
 
@@ -119,153 +126,179 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
             <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
             <Link
               to="/invoice/INV-2026-8942?token=sec_98a71b"
-              className="hidden sm:flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 rounded-xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25 transition"
+              className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-2xl text-xs font-bold text-white shadow-xl shadow-cyan-500/25 transition transform active:scale-95 ring-1 ring-white/20"
             >
               <Receipt className="w-4 h-4" />
-              <span>Sample Smart Bill</span>
+              <span className="hidden sm:inline">Try Demo Receipt</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 space-y-12">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-8 py-10 md:py-16 space-y-16">
         
-        <div className="text-center max-w-3xl mx-auto space-y-4 pt-4">
-          <div className="inline-flex items-center space-x-2 bg-cyan-500/10 border border-cyan-500/30 px-3.5 py-1.5 rounded-full text-xs font-bold text-cyan-500">
-            <Sparkles className="w-4 h-4" />
-            <span>Digital Receipts & Warranty Self-Service Portal</span>
+        {/* Main Hero Header & Interactive Search */}
+        <div className="text-center max-w-4xl mx-auto space-y-6">
+          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-indigo-500/10 border border-cyan-500/30 px-4 py-1.5 rounded-full text-xs font-bold text-cyan-400 shadow-sm backdrop-blur-md">
+            <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+            <span>Digital Smart Receipt & Warranty Platform</span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-black text-slate-100 dark:text-white light:text-slate-900 tracking-tight leading-tight">
-            Track Purchases, Claims & Warranties in One Place
+          <h1 className="text-4xl md:text-6xl font-black text-slate-100 dark:text-white light:text-slate-900 tracking-tight leading-[1.1]">
+            Your Electronics Receipts & <br className="hidden md:inline" />
+            <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
+              Warranties, Simplified.
+            </span>
           </h1>
-          <p className="text-sm md:text-base text-slate-400 dark:text-slate-400 light:text-slate-600">
-            Received an SMS or WhatsApp invoice link? Lookup your receipt details instantly or sign in with your phone number.
+
+          <p className="text-sm md:text-lg text-slate-400 dark:text-slate-400 light:text-slate-600 max-w-2xl mx-auto leading-relaxed">
+            Received an instant WhatsApp or Email receipt link? Search your invoice below or sign in to track device warranty expirations and repair status.
           </p>
 
-          {/* Quick Invoice Lookup Bar */}
-          <div className="max-w-xl mx-auto pt-4">
+          {/* Premium Glassmorphic Search Bar */}
+          <div className="max-w-2xl mx-auto pt-4">
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
-                if (searchId.trim()) {
-                  window.location.href = `/invoice/INV-2026-8942?token=sec_98a71b`;
-                }
+                window.location.href = `/invoice/INV-2026-8942?token=sec_98a71b`;
               }}
-              className="flex items-center bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-300 p-2 rounded-2xl shadow-xl"
+              className="flex flex-col sm:flex-row items-center bg-slate-900/90 dark:bg-slate-900/90 light:bg-white/90 backdrop-blur-2xl border border-slate-800 dark:border-slate-800 light:border-slate-300 p-2 sm:p-2.5 rounded-3xl shadow-2xl space-y-2 sm:space-y-0 sm:space-x-2 ring-1 ring-white/10"
             >
-              <div className="pl-3 text-slate-500">
-                <Search className="w-5 h-5" />
+              <div className="flex items-center w-full pl-3 text-slate-400">
+                <Search className="w-5 h-5 text-cyan-400" />
+                <input
+                  type="text"
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
+                  placeholder="Enter Invoice ID (e.g. INV-2026-8942)..."
+                  className="w-full bg-transparent border-none px-3 py-2.5 text-sm text-slate-100 dark:text-white light:text-slate-900 focus:outline-none placeholder:text-slate-500 font-mono"
+                />
               </div>
-              <input
-                type="text"
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
-                placeholder="Enter Invoice Number (e.g. INV-2026-8942)"
-                className="w-full bg-transparent border-none px-3 py-2 text-sm text-slate-100 dark:text-white light:text-slate-900 focus:outline-none placeholder:text-slate-500"
-              />
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shrink-0 shadow-md shadow-cyan-500/20"
+                className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold rounded-2xl text-xs flex items-center justify-center space-x-2 shrink-0 shadow-lg shadow-cyan-500/30 transition transform active:scale-95"
               >
-                <span>Find Bill</span>
+                <span>Find Invoice</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
+            <div className="flex items-center justify-center space-x-4 text-xs text-slate-500 mt-3 font-medium">
+              <span className="flex items-center space-x-1">
+                <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Verified Link Security</span>
+              </span>
+              <span>•</span>
+              <span className="flex items-center space-x-1">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span>Instant PDF Download</span>
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Feature Grid for Customers */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Feature 1 */}
-          <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 p-6 rounded-3xl space-y-3 shadow-xl">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-500">
-              <Receipt className="w-6 h-6" />
+        {/* Feature Cards Showcase */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+          {/* Card 1 */}
+          <div className="group bg-slate-900/80 dark:bg-slate-900/80 light:bg-white/80 backdrop-blur-xl border border-slate-800 dark:border-slate-800 light:border-slate-200 p-8 rounded-3xl space-y-4 shadow-xl hover:border-cyan-500/40 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden">
+            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-inner group-hover:scale-110 transition-transform">
+              <Receipt className="w-7 h-7" />
             </div>
-            <h3 className="font-bold text-lg text-slate-100 dark:text-white light:text-slate-900">Digital Invoices</h3>
+            <h3 className="font-bold text-xl text-slate-100 dark:text-white light:text-slate-900">Instant Smart Receipts</h3>
             <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
-              No paper receipts needed! Access verified digital receipts anytime via WhatsApp, SMS, or direct links.
+              No paper receipts to lose. Access verified digital receipts sent directly to your WhatsApp & Email with embedded QR codes.
             </p>
           </div>
 
-          {/* Feature 2 */}
-          <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 p-6 rounded-3xl space-y-3 shadow-xl">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500">
-              <ShieldCheck className="w-6 h-6" />
+          {/* Card 2 */}
+          <div className="group bg-slate-900/80 dark:bg-slate-900/80 light:bg-white/80 backdrop-blur-xl border border-slate-800 dark:border-slate-800 light:border-slate-200 p-8 rounded-3xl space-y-4 shadow-xl hover:border-emerald-500/40 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner group-hover:scale-110 transition-transform">
+              <ShieldCheck className="w-7 h-7" />
             </div>
-            <h3 className="font-bold text-lg text-slate-100 dark:text-white light:text-slate-900">Warranty Tracking</h3>
+            <h3 className="font-bold text-xl text-slate-100 dark:text-white light:text-slate-900">Automated Warranty Vault</h3>
             <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
-              Every purchased mobile & accessory serial number / IMEI is automatically backed up for instant warranty checks.
+              Every device serial number and IMEI is automatically backed up in our cloud database for effortless warranty claims.
             </p>
           </div>
 
-          {/* Feature 3 */}
-          <div className="bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 p-6 rounded-3xl space-y-3 shadow-xl">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
-              <Wrench className="w-6 h-6" />
+          {/* Card 3 */}
+          <div className="group bg-slate-900/80 dark:bg-slate-900/80 light:bg-white/80 backdrop-blur-xl border border-slate-800 dark:border-slate-800 light:border-slate-200 p-8 rounded-3xl space-y-4 shadow-xl hover:border-amber-500/40 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner group-hover:scale-110 transition-transform">
+              <Wrench className="w-7 h-7" />
             </div>
-            <h3 className="font-bold text-lg text-slate-100 dark:text-white light:text-slate-900">Online Repair Tickets</h3>
+            <h3 className="font-bold text-xl text-slate-100 dark:text-white light:text-slate-900">Real-Time Repair Claims</h3>
             <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
-              Device issue? Request repairs online and track real-time progress from technician inspection to completion.
+              Device issue? Request warranty repairs online and track live status updates from technician inspection to store pickup.
             </p>
           </div>
         </div>
 
-        {/* Customer Self-Service Account Box */}
-        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 dark:from-slate-900 dark:to-indigo-950/40 light:from-white light:to-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-3xl p-6 md:p-8 shadow-2xl max-w-xl mx-auto space-y-5">
-          <div className="text-center space-y-1">
-            <h2 className="text-xl font-bold text-slate-100 dark:text-white light:text-slate-900">Sign In to Customer Account</h2>
-            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600">Enter your phone number to view all past invoices & warranties.</p>
+        {/* Customer Self-Service Sign-In Box */}
+        <div className="bg-gradient-to-br from-slate-900/90 via-slate-900/90 to-indigo-950/50 dark:from-slate-900/90 dark:to-indigo-950/50 light:from-white light:to-slate-100/90 backdrop-blur-2xl border border-slate-800 dark:border-slate-800 light:border-slate-200 rounded-3xl p-8 shadow-2xl max-w-xl mx-auto space-y-6 ring-1 ring-white/10">
+          <div className="text-center space-y-1.5">
+            <div className="w-12 h-12 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto text-white shadow-lg shadow-cyan-500/30 mb-3">
+              <Smartphone className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-100 dark:text-white light:text-slate-900">Access Customer Portal</h2>
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600">Enter your registered phone number to view your complete purchase history.</p>
           </div>
 
           {!userLoggedIn ? (
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={phoneLogin}
-                onChange={(e) => setPhoneLogin(e.target.value)}
-                placeholder="Mobile Number (e.g. +94 77 123 4567)"
-                className="w-full bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 rounded-xl px-4 py-3 text-xs text-slate-100 dark:text-white light:text-slate-900 focus:outline-none"
-              />
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700 block mb-1">Mobile Phone Number</label>
+                <input
+                  type="text"
+                  value={phoneLogin}
+                  onChange={(e) => setPhoneLogin(e.target.value)}
+                  placeholder="e.g. +94 77 123 4567"
+                  className="w-full bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 rounded-2xl px-4 py-3.5 text-xs text-slate-100 dark:text-white light:text-slate-900 focus:outline-none focus:border-cyan-500 font-mono"
+                />
+              </div>
 
               {!otpMode ? (
                 <button
                   onClick={() => setOtpMode(true)}
-                  className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl text-xs shadow-lg shadow-cyan-500/25"
+                  className="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold rounded-2xl text-xs shadow-xl shadow-cyan-500/25 transition transform active:scale-95"
                 >
-                  Send OTP Code
+                  Send One-Time Passcode (OTP)
                 </button>
               ) : (
                 <button
                   onClick={() => setUserLoggedIn(true)}
-                  className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-500/25"
+                  className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-95 text-white font-bold rounded-2xl text-xs shadow-xl shadow-emerald-500/25 transition transform active:scale-95"
                 >
                   Verify Passcode & Enter Portal
                 </button>
               )}
             </div>
           ) : (
-            <div className="text-center space-y-3 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-              <p className="text-xs font-bold text-emerald-400">Welcome Back, Kasun Perera!</p>
-              <div className="flex justify-center space-x-2">
-                <Link
-                  to="/invoice/INV-2026-8942?token=sec_98a71b"
-                  className="px-4 py-2 bg-cyan-600 text-white rounded-xl text-xs font-bold"
-                >
-                  View Purchases & Receipts
-                </Link>
+            <div className="text-center space-y-4 bg-slate-950/60 p-6 rounded-2xl border border-slate-800">
+              <div className="flex items-center justify-center space-x-2 text-emerald-400 font-bold text-sm">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>Welcome back, Kasun Perera!</span>
               </div>
+              <Link
+                to="/invoice/INV-2026-8942?token=sec_98a71b"
+                className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-500/20"
+              >
+                <span>Open Receipts & Warranties</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           )}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 dark:border-slate-800 light:border-slate-200 bg-slate-900/40 text-center py-6 text-xs text-slate-500">
-        <p>© 2026 I-Store Electronics. Customer Smart Bill & Portal Engine.</p>
-        <div className="mt-2 flex justify-center space-x-4 text-[11px]">
-          <Link to="/demo-hub" className="text-cyan-500 hover:underline font-semibold">ERP System Demo & Admin Hub ➔</Link>
+      <footer className="border-t border-slate-800/80 dark:border-slate-800/80 light:border-slate-200/80 bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-50 text-center py-8 text-xs text-slate-500 space-y-3">
+        <p>© 2026 I-Store Electronics POS System. Powered by Supabase & Nexius Platform.</p>
+        <div className="flex justify-center items-center space-x-6 text-[11px] font-semibold">
+          <Link to="/demo-hub" className="text-cyan-400 hover:underline flex items-center space-x-1">
+            <span>ERP System Demo & Delivery Logs</span>
+            <ChevronRight className="w-3 h-3" />
+          </Link>
         </div>
       </footer>
     </div>
@@ -651,9 +684,6 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* ROUTER SETUP WITH THEME STATE                                              */
-/* -------------------------------------------------------------------------- */
 export function App() {
   const [isDark, setIsDark] = useState(() => (localStorage.getItem("theme") ?? "dark") === "dark");
 

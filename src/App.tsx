@@ -484,27 +484,45 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
                   <th className="py-2.5 px-1.5 text-right">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
-                {activeInvoice.items.map((item: InvoiceItem, idx: number) => (
-                  <tr key={idx}>
-                    <td className="py-3 px-1.5">
-                      <p className="font-semibold text-slate-900 dark:text-slate-100">{item.name}</p>
-                      {item.imeiOrSerial && (
-                        <p className="text-[11px] font-mono text-cyan-600 dark:text-cyan-400 mt-0.5">S/N: {item.imeiOrSerial}</p>
-                      )}
-                    </td>
-                    <td className="py-3 px-1.5 text-center text-[11px]">
-                      <span className="bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-400 border border-cyan-300 dark:border-cyan-800 px-2 py-0.5 rounded-full font-bold">
-                        {item.warrantyMonths}M
-                      </span>
-                    </td>
-                    <td className="py-3 px-1.5 text-center text-slate-700 dark:text-slate-300 font-medium">{item.qty}</td>
-                    <td className="py-3 px-1.5 text-right text-slate-700 dark:text-slate-300">{item.price.toLocaleString()}</td>
-                    <td className="py-3 px-1.5 text-right font-bold text-slate-900 dark:text-slate-100">
-                      {(item.price * item.qty).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
+                {activeInvoice.items.map((item: InvoiceItem, idx: number) => {
+                  const invoiceDate = new Date(activeInvoice.date);
+                  const expiryDate = new Date(invoiceDate);
+                  expiryDate.setMonth(expiryDate.getMonth() + (item.warrantyMonths || 0));
+                  const isWarrantyActive = new Date() < expiryDate;
+
+                  return (
+                    <tr key={idx}>
+                      <td className="py-3 px-1.5">
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">{item.name}</p>
+                        {item.imeiOrSerial && (
+                          <p className="text-[11px] font-mono text-cyan-600 dark:text-cyan-400 mt-0.5">S/N: {item.imeiOrSerial}</p>
+                        )}
+                      </td>
+                      <td className="py-3 px-1.5 text-center text-[11px]">
+                        {item.warrantyMonths > 0 ? (
+                          isWarrantyActive ? (
+                            <span className="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-full font-bold inline-flex items-center space-x-1">
+                              <span>Active</span>
+                              <span>({item.warrantyMonths}M)</span>
+                            </span>
+                          ) : (
+                            <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 px-2 py-0.5 rounded-full font-semibold">
+                              Expired
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-slate-400">N/A</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-1.5 text-center text-slate-700 dark:text-slate-300 font-medium">{item.qty}</td>
+                      <td className="py-3 px-1.5 text-right text-slate-700 dark:text-slate-300">{item.price.toLocaleString()}</td>
+                      <td className="py-3 px-1.5 text-right font-bold text-slate-900 dark:text-slate-100">
+                        {(item.price * item.qty).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

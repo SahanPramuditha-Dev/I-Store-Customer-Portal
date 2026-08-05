@@ -10,11 +10,11 @@
   }
 
   html.light {
-    --app-bg: radial-gradient(circle at 10% 10%, #f8fbff 0%, #eef3ff 55%, #e8eefc 100%);
+    --app-bg: radial-gradient(circle at 10% 10%, #f8fbff 0%, #eef5ff 55%, #e2ebfe 100%);
     --app-text: #0f172a;
-    --panel-bg: rgba(255, 255, 255, 0.9);
-    --card-bg: rgba(244, 248, 255, 0.95);
-    --border-color: rgba(148, 163, 184, 0.2);
+    --panel-bg: #ffffff;
+    --card-bg: #ffffff;
+    --border-color: rgba(203, 213, 225, 0.8);
   }
 
   body {
@@ -24,6 +24,44 @@
     transition: background 0.3s ease, color 0.3s ease;
     min-height: 100vh;
   }
+}
+
+/* Light Theme Component Overrides to ensure high contrast text & backgrounds */
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900,
+html.light .bg-slate-950\/70,
+html.light .bg-slate-950\/60,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-800\/80,
+html.light .border-slate-800\/60 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .text-slate-100,
+html.light .text-white {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-400 {
+  color: #475569 !important;
+}
+
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+html.light input,
+html.light textarea {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
 @media print {

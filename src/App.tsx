@@ -57,7 +57,7 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
     <button
       onClick={onToggle}
       title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 text-amber-500 dark:text-cyan-400 border border-slate-300 dark:border-slate-700 transition-all duration-200 shadow-sm shrink-0"
+      className="p-2.5 rounded-2xl bg-slate-200 dark:bg-slate-800 text-amber-600 dark:text-cyan-400 border border-slate-300 dark:border-slate-700 transition-all duration-200 shadow-sm shrink-0 hover:scale-105"
     >
       {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
     </button>
@@ -104,10 +104,10 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
     <div className="min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-300 overflow-x-hidden">
       
       {/* Background Decorative Mesh Orbs */}
-      <div className="fixed top-[-100px] left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-tr from-cyan-500/10 via-blue-600/10 to-indigo-600/10 rounded-full blur-[140px] pointer-events-none -z-10 dark:opacity-100 opacity-40"></div>
+      <div className="fixed top-[-100px] left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-tr from-cyan-500/10 via-blue-600/10 to-indigo-600/10 rounded-full blur-[140px] pointer-events-none -z-10 dark:opacity-100 opacity-20"></div>
 
       {/* Responsive Navbar */}
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 backdrop-blur-2xl sticky top-0 z-50 px-4 md:px-8 py-3.5 shadow-sm">
+      <header className="border-b border-slate-300 dark:border-slate-800 bg-white/95 dark:bg-slate-950/80 backdrop-blur-2xl sticky top-0 z-50 px-4 md:px-8 py-3.5 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2.5 sm:space-x-3">
             <div className="bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-cyan-500/25 shrink-0">
@@ -118,11 +118,11 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                 <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                   I-STORE
                 </span>
-                <span className="text-[9px] sm:text-[10px] uppercase font-extrabold tracking-widest bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full">
+                <span className="text-[9px] sm:text-[10px] uppercase font-extrabold tracking-widest bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full">
                   Customer Care
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">Digital Receipts & Warranty Portal</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 font-medium">Digital Receipts & Warranty Portal</p>
             </div>
           </div>
 
@@ -137,19 +137,19 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
         
         {/* Main Hero Header */}
         <div className="text-center max-w-4xl mx-auto space-y-4 sm:space-y-6">
-          <div className="inline-flex items-center space-x-2 bg-cyan-500/10 border border-cyan-500/30 px-3.5 py-1.5 rounded-full text-xs font-bold text-cyan-700 dark:text-cyan-400 shadow-sm">
-            <Sparkles className="w-4 h-4 text-cyan-500" />
+          <div className="inline-flex items-center space-x-2 bg-cyan-500/10 border border-cyan-500/30 px-3.5 py-1.5 rounded-full text-xs font-bold text-cyan-800 dark:text-cyan-400 shadow-sm">
+            <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
             <span>Digital Smart Receipt & Warranty Platform</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.15]">
             Your Electronics Receipts & <br className="hidden sm:inline" />
-            <span className="gradient-heading">
+            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 dark:from-cyan-400 dark:via-blue-500 dark:to-indigo-500 bg-clip-text text-transparent">
               Warranties, Simplified.
             </span>
           </h1>
 
-          <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed px-2">
+          <p className="text-xs sm:text-sm md:text-base text-slate-700 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed px-2">
             Received an instant WhatsApp or Email receipt link? Search your invoice below or sign in with your mobile number to view purchase history.
           </p>
 
@@ -180,7 +180,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
             </form>
 
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-              <span className="text-xs text-slate-500 dark:text-slate-400">Quick Test:</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">Quick Test:</span>
               <button
                 type="button"
                 onClick={() => setSearchId('INV-2026-8942')}
@@ -194,7 +194,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
               <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-2">{searchError}</p>
             )}
 
-            <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-4 font-medium">
+            <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-4 font-medium">
               <span className="flex items-center space-x-1">
                 <FileCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Verified Security</span>
@@ -208,7 +208,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
           </div>
         </div>
 
-        {/* Feature Cards Grid */}
+        {/* Feature Cards Grid - High Contrast Light Mode */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 pt-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl space-y-3 shadow-md hover:shadow-xl transition-all">
             <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
@@ -307,7 +307,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
 }
 
 /* -------------------------------------------------------------------------- */
-/* PUBLIC INVOICE PAGE (Responsive & High-Contrast Light/Dark Printable Card) */
+/* PUBLIC INVOICE PAGE                                                        */
 /* -------------------------------------------------------------------------- */
 function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const { id } = useParams<{ id: string }>();

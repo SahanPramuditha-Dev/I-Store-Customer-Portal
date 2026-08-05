@@ -7,7 +7,7 @@
   }
 
   html.light {
-    --app-bg: #f1f5f9;
+    --app-bg: #f8fafc;
     --app-text: #0f172a;
   }
 
@@ -20,33 +20,38 @@
   }
 }
 
-/* Hard light theme explicit color overrides */
+/* Explicit Light Mode styling fixes */
+html.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
 html.light h1,
 html.light h2,
 html.light h3,
 html.light h4,
-html.light .hero-title {
-  color: #0f172a !important;
-  -webkit-text-fill-color: initial !important;
-}
-
-html.light .gradient-heading {
-  background: linear-gradient(to right, #0284c7, #2563eb, #4f46e5) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-}
-
-html.light p,
 html.light span,
+html.light p,
 html.light label {
-  color: #334155;
+  color: #0f172a;
 }
 
-html.light .bg-white-card {
+html.light .text-slate-400,
+html.light .text-slate-500,
+html.light .text-slate-600 {
+  color: #334155 !important;
+}
+
+html.light .bg-slate-900 {
   background-color: #ffffff !important;
-  color: #0f172a !important;
   border-color: #cbd5e1 !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
+  color: #0f172a !important;
+}
+
+html.light .bg-slate-950 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
 }
 
 @media print {

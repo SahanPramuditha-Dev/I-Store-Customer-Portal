@@ -731,18 +731,42 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
 /* -------------------------------------------------------------------------- */
 function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const [activeTab, setActiveTab] = useState<'delivery' | 'admin' | 'ai'>('delivery');
+  const [usernameInput, setUsernameInput] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authedRole, setAuthedRole] = useState('');
   const [pinError, setPinError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
 
-  const handleAdminAuth = (e: React.FormEvent) => {
+  const SUPABASE_URL = 'https://bibwrndmbugtlyuvpmzi.supabase.co';
+
+  const handleAdminAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Manager Security PIN Check (Default: 9912 or 1234)
-    if (pinInput.trim() === '9912' || pinInput.trim() === '1234') {
-      setIsAuthenticated(true);
-      setPinError('');
-    } else {
-      setPinError('Invalid Manager Security PIN. Access Denied.');
+    if (!usernameInput.trim() || !pinInput.trim()) {
+      setPinError('Username and PIN are required.');
+      return;
+    }
+    setAuthLoading(true);
+    setPinError('');
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-staff-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: usernameInput.trim().toLowerCase(), pin: pinInput.trim() }),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        setIsAuthenticated(true);
+        setAuthedRole(data.role);
+      } else {
+        setPinError(data.error || 'Invalid username or PIN. Access Denied.');
+      }
+    } catch {
+      setPinError('Could not connect to verification server. Check your connection.');
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -753,30 +777,44 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
           <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl flex items-center justify-center mx-auto text-cyan-400">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-bold">Admin & Delivery Hub Security</h2>
-          <p className="text-xs text-slate-400">Enter your Store Manager PIN to access ERP delivery metrics & analytics.</p>
+          <h2 className="text-xl font-bold">Admin &amp; Delivery Hub</h2>
+          <p className="text-xs text-slate-400">Sign in using your I-Store POS staff username and PIN.</p>
 
-          <form onSubmit={handleAdminAuth} className="space-y-4">
+          <form onSubmit={handleAdminAuth} className="space-y-3 text-left">
             <div>
+              <label className="text-xs font-semibold text-slate-400 block mb-1">Staff Username</label>
+              <input
+                type="text"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder="e.g. admin or sahan"
+                autoComplete="username"
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-400 block mb-1">Staff PIN</label>
               <input
                 type="password"
-                maxLength={4}
+                maxLength={6}
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                placeholder="Enter Manager PIN..."
+                placeholder="Enter your POS PIN..."
+                autoComplete="current-password"
                 className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-center text-sm font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500"
               />
             </div>
 
             {pinError && (
-              <p className="text-xs text-rose-400 font-semibold">{pinError}</p>
+              <p className="text-xs text-rose-400 font-semibold text-center">{pinError}</p>
             )}
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25"
+              disabled={authLoading}
+              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Authenticate Admin Access
+              {authLoading ? 'Verifying with POS...' : 'Authenticate Admin Access'}
             </button>
           </form>
 
@@ -810,6 +848,10 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
 
           <div className="flex items-center space-x-3">
             <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+            <div className="hidden sm:flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 capitalize">{usernameInput} · {authedRole}</span>
+            </div>
             <Link to="/" className="text-xs text-cyan-500 font-bold hover:underline">
               Back to Landing Page ➔
             </Link>

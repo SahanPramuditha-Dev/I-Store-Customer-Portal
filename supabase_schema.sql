@@ -59,3 +59,19 @@ alter table repair_tickets enable row level security;
 create policy "Public invoices read access" on invoices for select using (true);
 create policy "Public invoice items read access" on invoice_items for select using (true);
 create policy "Public repairs read access" on repair_tickets for select using (true);
+
+-- 5. STAFF PINS TABLE (Synced from POS Software on manager login)
+-- Stores bcrypt-hashed PINs for admin/manager/owner roles only.
+-- Plain PINs are NEVER stored — only bcrypt hashes.
+-- Verified server-side via Supabase Edge Function "verify-staff-pin".
+create table if not exists staff_pins (
+    username text primary key,
+    role text not null check (role in ('admin', 'owner', 'manager')),
+    pin_hash text not null,         -- bcrypt hash of the PIN set in POS software
+    updated_at timestamp with time zone default now()
+);
+
+alter table staff_pins enable row level security;
+
+-- No public access: can only be read by service role (Edge Function uses service role key)
+create policy "Service role only" on staff_pins for all using (auth.role() = 'service_role');

@@ -164,7 +164,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                   type="text"
                   value={searchId}
                   onChange={(e) => setSearchId(e.target.value)}
-                  placeholder="Enter Invoice ID (e.g. INV-2026-8942)..."
+                  placeholder="Enter your Invoice ID..."
                   className="w-full bg-transparent border-none px-3 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-mono"
                 />
               </div>

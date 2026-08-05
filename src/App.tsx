@@ -731,6 +731,64 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
 /* -------------------------------------------------------------------------- */
 function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const [activeTab, setActiveTab] = useState<'delivery' | 'admin' | 'ai'>('delivery');
+  const [pinInput, setPinInput] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pinError, setPinError] = useState('');
+
+  const handleAdminAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Manager Security PIN Check (Default: 9912 or 1234)
+    if (pinInput.trim() === '9912' || pinInput.trim() === '1234') {
+      setIsAuthenticated(true);
+      setPinError('');
+    } else {
+      setPinError('Invalid Manager Security PIN. Access Denied.');
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-5 shadow-2xl">
+          <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl flex items-center justify-center mx-auto text-cyan-400">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold">Admin & Delivery Hub Security</h2>
+          <p className="text-xs text-slate-400">Enter your Store Manager PIN to access ERP delivery metrics & analytics.</p>
+
+          <form onSubmit={handleAdminAuth} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                maxLength={4}
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                placeholder="Enter Manager PIN..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-center text-sm font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            {pinError && (
+              <p className="text-xs text-rose-400 font-semibold">{pinError}</p>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25"
+            >
+              Authenticate Admin Access
+            </button>
+          </form>
+
+          <div className="pt-2">
+            <Link to="/" className="text-xs text-slate-500 hover:underline">
+              ← Return to Customer Portal
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col font-sans transition-colors duration-300">

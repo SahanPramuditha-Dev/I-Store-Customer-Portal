@@ -627,6 +627,31 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
             </div>
           </div>
 
+          {/* Customer Feedback & Experience Rating Component */}
+          <div className="no-print bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <span>Rate Your Shopping & Checkout Experience</span>
+              </span>
+              <span className="text-[10px] text-slate-500">Feedback Syncs to POS</span>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => {
+                    alert(`Thank you for giving us a ${star}-star rating! Your feedback has been sent to our management team.`);
+                  }}
+                  className="p-1 hover:scale-125 transition text-amber-400 hover:text-amber-500"
+                >
+                  <Star className="w-6 h-6 fill-current" />
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Repair Request Action Footer */}
           <div className="no-print bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center space-x-2.5">

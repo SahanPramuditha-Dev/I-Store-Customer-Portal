@@ -675,7 +675,7 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
                 <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl text-slate-800 dark:text-slate-200 space-y-2">
                   <p className="font-bold text-emerald-600 dark:text-emerald-500">ABC Mobile / I-Store POS</p>
                   <p>Thank you for your purchase!</p>
-                  <p className="font-mono text-cyan-600 dark:text-cyan-500">Your invoice: https://store.com/invoice/INV-2026-8942</p>
+                  <p className="font-mono text-cyan-600 dark:text-cyan-500">Your invoice: https://i-store-customer-portal-one.vercel.app/invoice/INV-2026-8942</p>
                 </div>
               </div>
             </div>

@@ -4,17 +4,11 @@
   :root {
     --app-bg: radial-gradient(circle at 10% 10%, #1a2440 0%, #070b18 48%, #050814 100%);
     --app-text: #e5e7eb;
-    --panel-bg: rgba(16, 21, 39, 0.78);
-    --card-bg: rgba(22, 29, 56, 0.82);
-    --border-color: rgba(255, 255, 255, 0.1);
   }
 
   html.light {
-    --app-bg: radial-gradient(circle at 10% 10%, #f8fbff 0%, #eef5ff 55%, #e2ebfe 100%);
+    --app-bg: #f1f5f9;
     --app-text: #0f172a;
-    --panel-bg: #ffffff;
-    --card-bg: #ffffff;
-    --border-color: rgba(203, 213, 225, 0.8);
   }
 
   body {
@@ -26,42 +20,33 @@
   }
 }
 
-/* Light Theme Component Overrides to ensure high contrast text & backgrounds */
-html.light .bg-slate-900\/90,
-html.light .bg-slate-900\/80,
-html.light .bg-slate-900,
-html.light .bg-slate-950\/70,
-html.light .bg-slate-950\/60,
-html.light .bg-slate-950\/80,
-html.light .bg-slate-950 {
+/* Hard light theme explicit color overrides */
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light .hero-title {
+  color: #0f172a !important;
+  -webkit-text-fill-color: initial !important;
+}
+
+html.light .gradient-heading {
+  background: linear-gradient(to right, #0284c7, #2563eb, #4f46e5) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html.light p,
+html.light span,
+html.light label {
+  color: #334155;
+}
+
+html.light .bg-white-card {
   background-color: #ffffff !important;
   color: #0f172a !important;
-}
-
-html.light .border-slate-800,
-html.light .border-slate-800\/80,
-html.light .border-slate-800\/60 {
-  border-color: #e2e8f0 !important;
-}
-
-html.light .text-slate-100,
-html.light .text-white {
-  color: #0f172a !important;
-}
-
-html.light .text-slate-400 {
-  color: #475569 !important;
-}
-
-html.light .text-slate-500 {
-  color: #64748b !important;
-}
-
-html.light input,
-html.light textarea {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
   border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
 }
 
 @media print {

@@ -128,26 +128,35 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
     try {
       const query = searchId.trim().toUpperCase();
 
-      // Try exact match first
+      // Require phone number to look up an invoice — prevents anyone guessing IDs
+      if (!phoneLogin.trim()) {
+        setSearchError('Please enter your registered phone number first to search invoices.');
+        setLoading(false);
+        return;
+      }
+
+      // Match invoice ID AND phone number together
       let { data, error } = await supabase
         .from('invoices')
         .select('id, token')
         .eq('id', query)
+        .ilike('customer_phone', `%${phoneLogin.replace(/\s+/g, '')}%`)
         .maybeSingle();
 
-      // If not found, try partial ilike match (handles both INV-00001 and INV-2026-000001)
+      // Fallback: partial ID match with same phone check
       if (!data && !error) {
         const { data: fuzzy } = await supabase
           .from('invoices')
           .select('id, token')
           .ilike('id', `%${query}%`)
+          .ilike('customer_phone', `%${phoneLogin.replace(/\s+/g, '')}%`)
           .limit(1)
           .maybeSingle();
         data = fuzzy;
       }
 
       if (error || !data) {
-        setSearchError(`Invoice "${searchId}" not found in database.`);
+        setSearchError(`Invoice "${searchId}" not found. Make sure the invoice ID and phone number match.`);
       } else {
         window.location.href = `/invoice/${data.id}?token=${data.token}`;
       }
@@ -425,12 +434,23 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
     const fetchInvoice = async () => {
       if (!id) return;
       setLoading(true);
+
+      // Validate token from URL — must match the DB token
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlToken = urlParams.get('token');
+
       try {
         const { data, error } = await supabase
           .from('invoices')
           .select('*, invoice_items(*)')
           .eq('id', id)
-          .single();
+          .maybeSingle();
+
+        // Block access if token is missing or doesn't match
+        if (!data || error || !urlToken || data.token !== urlToken) {
+          setLoading(false);
+          return; // invoice stays null → shows "not found"
+        }
 
         if (data && !error) {
           setInvoice({

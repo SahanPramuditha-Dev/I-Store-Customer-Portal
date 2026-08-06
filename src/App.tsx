@@ -96,13 +96,19 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
       if (error || !data || data.length === 0) {
         setLoginError('No matching customer records found for this phone number.');
       } else {
-        // Check if any invoice ID ends with the 4-digit PIN
-        const match = data.filter((inv: any) => inv.id.endsWith(pinInput.trim()));
+        // PIN = last 4 digits of any invoice ID (e.g. INV-2026-000001 → "0001")
+        const enteredPin = pinInput.trim().padStart(4, '0');
+        const match = data.filter((inv: any) => {
+          const invId = String(inv.id || '');
+          // Extract trailing numeric sequence and check last 4 digits
+          const numPart = invId.replace(/[^0-9]/g, '');
+          return numPart.endsWith(enteredPin) || invId.endsWith(enteredPin);
+        });
         if (match.length > 0) {
           setCustomerInvoices(data);
           setUserLoggedIn(true);
         } else {
-          setLoginError('Invalid Security PIN. PIN must match the last 4 digits of any of your receipts.');
+          setLoginError('Invalid PIN. Enter the last 4 digits of any of your invoice numbers (e.g. "0001" for INV-2026-000001).');
         }
       }
     } catch {
@@ -111,6 +117,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
       setLoading(false);
     }
   };
+
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,7 +130,8 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
         .from('invoices')
         .select('*, invoice_items(*)')
         .eq('id', searchId.trim().toUpperCase())
-        .single();
+        .maybeSingle();
+
 
       if (error || !data) {
         setSearchError(`Invoice "${searchId}" not found in database.`);

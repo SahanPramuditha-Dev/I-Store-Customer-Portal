@@ -168,29 +168,30 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-300 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-300 overflow-x-hidden bg-slate-50 dark:bg-slate-950">
       
-      {/* Background Decorative Mesh & Circuit Glows */}
-      <div className="fixed top-[-100px] left-1/2 -translate-x-1/2 w-[900px] h-[550px] bg-gradient-to-tr from-cyan-500/10 via-blue-600/10 to-indigo-600/10 rounded-full blur-[150px] pointer-events-none -z-10 dark:opacity-70 opacity-30"></div>
-      <div className="fixed top-[400px] right-[-10%] w-[350px] h-[350px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+      {/* Premium Background Mesh Glows & Ambient Lights */}
+      <div className="fixed top-[-250px] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-tr from-cyan-500/20 via-blue-600/10 to-indigo-600/20 rounded-full blur-[160px] pointer-events-none -z-10 dark:opacity-40 opacity-20 animate-pulse duration-[8000ms]"></div>
+      <div className="fixed bottom-[-100px] left-[-10%] w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+      <div className="fixed top-[400px] right-[-10%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none -z-10"></div>
 
       {/* Responsive Navbar */}
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl sticky top-0 z-50 px-4 md:px-8 py-3.5 shadow-sm">
+      <header className="border-b border-slate-200/80 dark:border-slate-800/85 bg-white/70 dark:bg-slate-950/70 backdrop-blur-3xl sticky top-0 z-50 px-4 md:px-8 py-3.5 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2.5 sm:space-x-3">
-            <div className="bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-cyan-500/25 shrink-0">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 group">
+            <div className="bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-cyan-500/25 shrink-0 transition-transform duration-300 group-hover:scale-105">
               <Smartphone className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
               <div className="flex items-center space-x-1.5 sm:space-x-2">
-                <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                   I-STORE
                 </span>
-                <span className="text-[9px] sm:text-[10px] uppercase font-extrabold tracking-widest bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full">
+                <span className="text-[9px] sm:text-[10px] uppercase font-extrabold tracking-widest bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/30 px-2.5 py-0.5 rounded-full shadow-sm">
                   Customer Care
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 font-medium">Digital Receipts & Warranty Portal</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">Digital Receipts & Warranty Portal</p>
             </div>
           </div>
 
@@ -201,18 +202,18 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
       </header>
 
       {/* Hero Section */}
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 md:px-8 py-8 md:py-16 space-y-16">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 md:px-8 py-8 md:py-20 space-y-20">
         
         {/* Main Hero Header */}
-        <div className="text-center max-w-4xl mx-auto space-y-4 sm:space-y-6">
-          <div className="inline-flex items-center space-x-2 bg-cyan-500/10 border border-cyan-500/30 px-3.5 py-1.5 rounded-full text-xs font-bold text-cyan-800 dark:text-cyan-400 shadow-sm">
-            <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+        <div className="text-center max-w-4xl mx-auto space-y-5 sm:space-y-7 animate-fade-in">
+          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 px-4 py-1.5 rounded-full text-xs font-bold text-cyan-800 dark:text-cyan-400 shadow-sm backdrop-blur-sm">
+            <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400 animate-spin duration-3000" />
             <span>Official Customer Service Portal</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.15]">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.12]">
             Never Lose a Receipt.<br className="hidden sm:inline" />
-            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 dark:from-cyan-400 dark:via-blue-500 dark:to-indigo-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
               Never Miss a Warranty.
             </span>
           </h1>
@@ -222,34 +223,37 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
             Access all your purchase histories, serial/IMEI details, and warranty terms directly from your browser.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-3 pt-1 text-[11px] sm:text-xs text-slate-500 font-semibold">
-            <span className="bg-slate-100 dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800/80">✓ Secure Digital Receipts</span>
-            <span className="bg-slate-100 dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800/80">✓ Instant Warranty Access</span>
-            <span className="bg-slate-100 dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800/80">✓ Seamless Online Repairs</span>
+          <div className="flex flex-wrap justify-center gap-3 pt-1 text-[11px] sm:text-xs text-slate-500 font-bold">
+            <span className="bg-white dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800/80 shadow-sm transition hover:border-cyan-500/30">✓ Secure Digital Receipts</span>
+            <span className="bg-white dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800/80 shadow-sm transition hover:border-cyan-500/30">✓ Instant Warranty Access</span>
+            <span className="bg-white dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800/80 shadow-sm transition hover:border-cyan-500/30">✓ Seamless Online Repairs</span>
           </div>
 
           {/* Secure Tabbed Access Widget */}
           <div className="max-w-xl mx-auto pt-4 sm:pt-6">
-            <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 p-5 rounded-3xl shadow-2xl space-y-4 relative">
+            <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800/80 p-6 rounded-3xl shadow-2xl space-y-5 relative group transition-all duration-300 hover:shadow-cyan-500/5">
+              
+              {/* Outer decorative light bar */}
+              <div className="absolute inset-x-12 -top-px h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
               
               {/* Tabs */}
-              <div className="flex border-b border-slate-200 dark:border-slate-800 pb-1.5 gap-4">
+              <div className="flex border-b border-slate-200 dark:border-slate-800 pb-2 gap-5">
                 <button
                   onClick={() => { setSearchTab('search'); setSearchError(''); setLoginError(''); }}
-                  className={`text-xs font-black uppercase tracking-wider pb-2 border-b-2 transition-all ${
+                  className={`text-xs font-black uppercase tracking-wider pb-2 border-b-2 transition-all duration-200 ${
                     searchTab === 'search'
                       ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
-                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                      : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
                   }`}
                 >
                   Find Receipt
                 </button>
                 <button
                   onClick={() => { setSearchTab('login'); setSearchError(''); setLoginError(''); }}
-                  className={`text-xs font-black uppercase tracking-wider pb-2 border-b-2 transition-all ${
+                  className={`text-xs font-black uppercase tracking-wider pb-2 border-b-2 transition-all duration-200 ${
                     searchTab === 'login'
                       ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
-                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                      : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
                   }`}
                 >
                   Access Vault Portal

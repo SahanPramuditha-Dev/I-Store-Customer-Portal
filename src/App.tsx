@@ -78,6 +78,30 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
 
 
 
+  // Generates phone number variations to match formats like +9477..., 9477..., 077..., or 77...
+  const getPhoneVariations = (rawPhone: string): string[] => {
+    const cleaned = rawPhone.replace(/[^\d]/g, '');
+    if (!cleaned) return [];
+    
+    const variations: string[] = [cleaned];
+    
+    // Sri Lanka number variations
+    if (cleaned.startsWith('0') && cleaned.length === 10) {
+      const core = cleaned.slice(1);
+      variations.push(`94${core}`);
+      variations.push(core);
+    } else if (cleaned.startsWith('94') && cleaned.length === 11) {
+      const core = cleaned.slice(2);
+      variations.push(`0${core}`);
+      variations.push(core);
+    } else if (cleaned.length === 9) {
+      variations.push(`0${cleaned}`);
+      variations.push(`94${cleaned}`);
+    }
+    
+    return Array.from(new Set(variations));
+  };
+
   const handleVerifyCustomer = async () => {
     if (!phoneLogin.trim() || !pinInput.trim()) {
       setLoginError('Please enter both your phone number and 4-digit PIN.');
@@ -87,11 +111,19 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
     setLoginError('');
 
     try {
-      // Query Supabase for invoices belonging to this phone number
+      const variations = getPhoneVariations(phoneLogin);
+      if (variations.length === 0) {
+        setLoginError('Please enter a valid phone number.');
+        setLoading(false);
+        return;
+      }
+
+      // Query Supabase for invoices matching any of these phone variations
+      const orFilter = variations.map(v => `customer_phone.ilike.%${v}%`).join(',');
       const { data, error } = await supabase
         .from('invoices')
         .select('*, invoice_items(*)')
-        .ilike('customer_phone', `%${phoneLogin.replace(/\s+/g, '')}%`);
+        .or(orFilter);
 
       if (error || !data || data.length === 0) {
         setLoginError('No matching customer records found for this phone number.');
@@ -100,7 +132,6 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
         const enteredPin = pinInput.trim().padStart(4, '0');
         const match = data.filter((inv: any) => {
           const invId = String(inv.id || '');
-          // Extract trailing numeric sequence and check last 4 digits
           const numPart = invId.replace(/[^0-9]/g, '');
           return numPart.endsWith(enteredPin) || invId.endsWith(enteredPin);
         });
@@ -126,21 +157,30 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
     setSearchError('');
 
     try {
-      const query = searchId.trim().toUpperCase();
+      // Normalize spaces to hyphens (e.g., "INV 2026 000002" -> "INV-2026-000002")
+      const query = searchId.trim().replace(/\s+/g, '-').toUpperCase();
 
-      // Require phone number to look up an invoice — prevents anyone guessing IDs
       if (!phoneLogin.trim()) {
         setSearchError('Please enter your registered phone number first to search invoices.');
         setLoading(false);
         return;
       }
 
-      // Match invoice ID AND phone number together
+      const variations = getPhoneVariations(phoneLogin);
+      if (variations.length === 0) {
+        setSearchError('Please enter a valid phone number.');
+        setLoading(false);
+        return;
+      }
+
+      const orFilter = variations.map(v => `customer_phone.ilike.%${v}%`).join(',');
+
+      // Match invoice ID AND phone number variation together
       let { data, error } = await supabase
         .from('invoices')
         .select('id, token')
         .eq('id', query)
-        .ilike('customer_phone', `%${phoneLogin.replace(/\s+/g, '')}%`)
+        .or(orFilter)
         .maybeSingle();
 
       // Fallback: partial ID match with same phone check
@@ -149,7 +189,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
           .from('invoices')
           .select('id, token')
           .ilike('id', `%${query}%`)
-          .ilike('customer_phone', `%${phoneLogin.replace(/\s+/g, '')}%`)
+          .or(orFilter)
           .limit(1)
           .maybeSingle();
         data = fuzzy;
@@ -166,6 +206,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-300 overflow-x-hidden bg-slate-50 dark:bg-slate-950">

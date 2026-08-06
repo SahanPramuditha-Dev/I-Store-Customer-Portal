@@ -126,12 +126,25 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
     setSearchError('');
 
     try {
-      const { data, error } = await supabase
+      const query = searchId.trim().toUpperCase();
+
+      // Try exact match first
+      let { data, error } = await supabase
         .from('invoices')
-        .select('*, invoice_items(*)')
-        .eq('id', searchId.trim().toUpperCase())
+        .select('id, token')
+        .eq('id', query)
         .maybeSingle();
 
+      // If not found, try partial ilike match (handles both INV-00001 and INV-2026-000001)
+      if (!data && !error) {
+        const { data: fuzzy } = await supabase
+          .from('invoices')
+          .select('id, token')
+          .ilike('id', `%${query}%`)
+          .limit(1)
+          .maybeSingle();
+        data = fuzzy;
+      }
 
       if (error || !data) {
         setSearchError(`Invoice "${searchId}" not found in database.`);

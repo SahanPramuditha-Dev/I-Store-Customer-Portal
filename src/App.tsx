@@ -414,53 +414,6 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
           </div>
         </div>
 
-        {/* Dashboard / Wallet Preview Section */}
-        <div className="max-w-4xl mx-auto space-y-6 pt-4">
-          <div className="text-center space-y-1">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Preview Your Digital Wallet</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Keep tracking warranty validations easily in one place.</p>
-          </div>
-          <div className="bg-slate-900 text-white rounded-3xl p-6 border border-slate-800 shadow-2xl max-w-xl mx-auto space-y-4 font-sans relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl"></div>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Active Devices</span>
-                <h4 className="font-black text-sm text-cyan-400">My Warranty Vault</h4>
-              </div>
-              <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">Verified Account</span>
-            </div>
-            
-            <div className="space-y-2.5">
-              <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800/80 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold">iPhone 15 Pro Max</p>
-                  <p className="text-[10px] text-slate-500 font-mono">IMEI: 358941029481948</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-black text-cyan-400 block">245 Days left</span>
-                  <span className="text-[9px] text-slate-500 block">Warranty active</span>
-                </div>
-              </div>
-
-              <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800/80 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold">MacBook Pro 14" M3</p>
-                  <p className="text-[10px] text-slate-500 font-mono">S/N: C02F8912MD81</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-black text-cyan-400 block">312 Days left</span>
-                  <span className="text-[9px] text-slate-500 block">Warranty active</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between text-[10px] text-slate-500 font-medium">
-              <span>* Demo Preview representation</span>
-              <a href="#customer-portal" className="text-cyan-400 font-bold hover:underline">Log in to view yours ➔</a>
-            </div>
-          </div>
-        </div>
-
         {/* Support Call to Action */}
         <div className="max-w-xl mx-auto bg-gradient-to-br from-cyan-500/5 to-indigo-500/5 border border-cyan-500/20 rounded-3xl p-6 text-center space-y-3">
           <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Need Assistance with your Purchase?</h4>

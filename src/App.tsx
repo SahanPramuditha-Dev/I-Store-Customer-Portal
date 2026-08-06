@@ -220,28 +220,40 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
             Received an instant WhatsApp or Email receipt link? Search your invoice below or sign in with your mobile number to view purchase history.
           </p>
 
-          {/* Fully Responsive Search Bar */}
+          {/* Secure Two-Field Invoice Search */}
           <div className="max-w-2xl mx-auto pt-2 sm:pt-4">
-            <form 
+            <form
               onSubmit={handleSearch}
-              className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 p-2 rounded-2xl sm:rounded-3xl shadow-xl space-y-2 sm:space-y-0 sm:space-x-2"
+              className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 p-3 rounded-2xl sm:rounded-3xl shadow-xl space-y-2"
             >
-              <div className="flex items-center w-full pl-3 text-slate-400">
-                <Search className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0" />
-                <input
-                  type="text"
-                  value={searchId}
-                  onChange={(e) => setSearchId(e.target.value)}
-                  placeholder="Enter your Invoice ID..."
-                  className="w-full bg-transparent border-none px-3 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-mono"
-                />
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex items-center flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2">
+                  <Search className="w-4 h-4 text-cyan-500 shrink-0 mr-2" />
+                  <input
+                    type="tel"
+                    value={phoneLogin}
+                    onChange={(e) => setPhoneLogin(e.target.value)}
+                    placeholder="Your phone number..."
+                    className="w-full bg-transparent border-none text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400"
+                  />
+                </div>
+                <div className="flex items-center flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2">
+                  <span className="text-xs text-slate-400 shrink-0 mr-2 font-mono">#</span>
+                  <input
+                    type="text"
+                    value={searchId}
+                    onChange={(e) => setSearchId(e.target.value)}
+                    placeholder="Invoice ID (e.g. INV-2026-000001)..."
+                    className="w-full bg-transparent border-none text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-mono"
+                  />
+                </div>
               </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold rounded-xl sm:rounded-2xl text-xs flex items-center justify-center space-x-2 shrink-0 shadow-lg shadow-cyan-500/25 transition active:scale-95"
+                className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-lg shadow-cyan-500/25 transition active:scale-95"
               >
-                <span>{loading ? 'Searching...' : 'Find Invoice'}</span>
+                <span>{loading ? 'Searching...' : 'Find My Invoice'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
@@ -253,7 +265,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
             <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-4 font-medium">
               <span className="flex items-center space-x-1">
                 <FileCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Verified Security</span>
+                <span>Phone + Invoice ID Required</span>
               </span>
               <span>•</span>
               <span className="flex items-center space-x-1">

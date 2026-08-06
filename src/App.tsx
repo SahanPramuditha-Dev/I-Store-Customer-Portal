@@ -75,7 +75,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
   const [pinInput, setPinInput] = useState('');
   const [customerInvoices, setCustomerInvoices] = useState<any[]>([]);
   const [loginError, setLoginError] = useState('');
-  const [searchTab, setSearchTab] = useState<'search' | 'login'>('search');
+
 
 
   const handleVerifyCustomer = async () => {
@@ -229,39 +229,19 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
             <span className="bg-white dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800/80 shadow-sm transition hover:border-cyan-500/30">✓ Seamless Online Repairs</span>
           </div>
 
-          {/* Secure Tabbed Access Widget */}
+          {/* Unified Secure Access Widget */}
           <div className="max-w-xl mx-auto pt-4 sm:pt-6">
-            <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800/80 p-6 rounded-3xl shadow-2xl space-y-5 relative group transition-all duration-300 hover:shadow-cyan-500/5">
+            <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800/80 p-6 rounded-3xl shadow-2xl space-y-4 relative group transition-all duration-300 hover:shadow-cyan-500/5">
               
               {/* Outer decorative light bar */}
               <div className="absolute inset-x-12 -top-px h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
               
-              {/* Tabs */}
-              <div className="flex border-b border-slate-200 dark:border-slate-800 pb-2 gap-5">
-                <button
-                  onClick={() => { setSearchTab('search'); setSearchError(''); setLoginError(''); }}
-                  className={`text-xs font-black uppercase tracking-wider pb-2 border-b-2 transition-all duration-200 ${
-                    searchTab === 'search'
-                      ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
-                      : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                  }`}
-                >
-                  Find Receipt
-                </button>
-                <button
-                  onClick={() => { setSearchTab('login'); setSearchError(''); setLoginError(''); }}
-                  className={`text-xs font-black uppercase tracking-wider pb-2 border-b-2 transition-all duration-200 ${
-                    searchTab === 'login'
-                      ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
-                      : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                  }`}
-                >
-                  Access Vault Portal
-                </button>
+              <div className="text-left">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Secure Warranty Vault & Bill Access</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Enter your registered details to view purchase history or check active warranties.</p>
               </div>
 
-              {searchTab === 'search' ? (
-                /* Tab 1: Find Single Receipt */
+              {!userLoggedIn ? (
                 <form onSubmit={handleSearch} className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
                     <div className="space-y-1">
@@ -274,112 +254,94 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                           onChange={(e) => setPhoneLogin(e.target.value)}
                           placeholder="e.g. +94 77 123 4567"
                           className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-mono"
+                          required
                         />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400">Invoice Number</label>
+                      <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400">Invoice ID or last 4 digits</label>
                       <div className="flex items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2">
                         <span className="text-xs text-slate-400 shrink-0 mr-2 font-mono">#</span>
                         <input
                           type="text"
                           value={searchId}
-                          onChange={(e) => setSearchId(e.target.value)}
-                          placeholder="e.g. INV-2026-000001"
+                          onChange={(e) => {
+                            setSearchId(e.target.value);
+                            setPinInput(e.target.value); // Sync to pinInput too so verification checks match
+                          }}
+                          placeholder="e.g. INV-2026-000001 or 0001"
                           className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-mono"
+                          required
                         />
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-lg shadow-cyan-500/25 transition active:scale-95"
-                  >
-                    <span>{loading ? 'Searching...' : 'Find My Receipt'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-sm transition active:scale-95"
+                    >
+                      <span>Find Receipt</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleVerifyCustomer();
+                      }}
+                      disabled={loading}
+                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-sm transition active:scale-95"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Enter Vault Portal</span>
+                    </button>
+                  </div>
+
                   {searchError && (
                     <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-1 text-left">{searchError}</p>
                   )}
+                  {loginError && (
+                    <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-1 text-left">{loginError}</p>
+                  )}
                 </form>
               ) : (
-                /* Tab 2: Access Customer Portal */
-                <div className="space-y-3">
-                  {!userLoggedIn ? (
-                    <div className="space-y-3 text-left">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400">Registered Phone</label>
-                          <input
-                            type="text"
-                            value={phoneLogin}
-                            onChange={(e) => setPhoneLogin(e.target.value)}
-                            placeholder="e.g. +94 77 123 4567"
-                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400">Invoice PIN (Last 4 Digits)</label>
-                          <input
-                            type="text"
-                            maxLength={4}
-                            value={pinInput}
-                            onChange={(e) => setPinInput(e.target.value)}
-                            placeholder="e.g. 8942"
-                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono tracking-widest text-center font-bold"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        onClick={handleVerifyCustomer}
-                        disabled={loading}
-                        className="w-full py-3 bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-500/25 transition active:scale-95 flex items-center justify-center space-x-2"
-                      >
-                        <ShieldCheck className="w-4.5 h-4.5" />
-                        <span>{loading ? 'Verifying...' : 'Verify Security PIN & Enter Portal'}</span>
-                      </button>
-                      {loginError && (
-                        <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold text-center mt-1">{loginError}</p>
-                      )}
+                /* Customer Verified Portal Dashboard */
+                <div className="space-y-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-left">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Customer Account Verified</span>
                     </div>
-                  ) : (
-                    /* Customer Verified Portal Dashboard */
-                    <div className="space-y-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-left">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Customer Account Verified</span>
-                        </div>
-                        <button
-                          onClick={() => { setUserLoggedIn(false); setCustomerInvoices([]); }}
-                          className="text-[10px] text-slate-500 hover:underline font-bold"
-                        >
-                          Sign Out
-                        </button>
-                      </div>
+                    <button
+                      onClick={() => { setUserLoggedIn(false); setCustomerInvoices([]); }}
+                      className="text-[10px] text-slate-500 hover:underline font-bold"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
 
-                      <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                        <p className="text-[11px] font-bold text-slate-900 dark:text-white">Your Purchase History ({customerInvoices.length}):</p>
-                        <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                          {customerInvoices.map((inv, idx) => (
-                            <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-                              <div>
-                                <span className="font-mono font-bold text-cyan-600 dark:text-cyan-400">{inv.id}</span>
-                                <span className="text-[9px] text-slate-500 ml-2">{new Date(inv.created_at).toLocaleDateString()}</span>
-                              </div>
-                              <Link
-                                to={`/invoice/${inv.id}?token=${inv.token}`}
-                                className="px-2 py-0.5 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg text-[10px] font-bold hover:underline"
-                              >
-                                View ➔
-                              </Link>
-                            </div>
-                          ))}
+                  <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <p className="text-[11px] font-bold text-slate-900 dark:text-white">Your Purchase History ({customerInvoices.length}):</p>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {customerInvoices.map((inv, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                          <div>
+                            <span className="font-mono font-bold text-cyan-600 dark:text-cyan-400">{inv.id}</span>
+                            <span className="text-[9px] text-slate-500 ml-2">{new Date(inv.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <Link
+                            to={`/invoice/${inv.id}?token=${inv.token}`}
+                            className="px-2 py-0.5 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg text-[10px] font-bold hover:underline"
+                          >
+                            View ➔
+                          </Link>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 

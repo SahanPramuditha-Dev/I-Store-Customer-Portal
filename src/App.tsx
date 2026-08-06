@@ -509,6 +509,9 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
       if (!id) return;
       setLoading(true);
 
+      // Normalize spaces to hyphens (e.g., "INV 2026 000002" -> "INV-2026-000002")
+      const normalizedId = id.trim().replace(/\s+/g, '-').toUpperCase();
+
       // Validate token from URL — must match the DB token
       const urlParams = new URLSearchParams(window.location.search);
       const urlToken = urlParams.get('token');
@@ -517,7 +520,7 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
         const { data, error } = await supabase
           .from('invoices')
           .select('*, invoice_items(*)')
-          .eq('id', id)
+          .eq('id', normalizedId)
           .maybeSingle();
 
         // Block access if token is missing or doesn't match
@@ -571,13 +574,20 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
   }
 
   if (!invoice) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasToken = !!urlParams.get('token');
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col items-center justify-center p-4 text-center space-y-4">
-        <h2 className="text-xl font-bold">Invoice Not Found</h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400">The requested invoice ID "{id}" does not exist in the database.</p>
-        <Link to="/" className="px-4 py-2 bg-cyan-600 rounded-xl text-xs font-bold text-white">Back to Home</Link>
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <h2 className="text-xl font-bold">Access Denied / Invoice Not Found</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
+          {!hasToken 
+            ? 'For security reasons, digital receipts can only be viewed using the official secure link containing a verification token (e.g. from WhatsApp or Email).'
+            : `The requested invoice "${id}" does not exist, or the security token is invalid.`}
+        </p>
+        <Link to="/" className="px-4 py-2 bg-cyan-600 rounded-xl text-xs font-bold text-white shadow-md shadow-cyan-600/20">Back to Home</Link>
       </div>
     );
+
   }
 
   const activeInvoice = invoice;

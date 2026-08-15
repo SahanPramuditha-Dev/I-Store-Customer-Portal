@@ -1,6 +1,34 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://bibwrndmbugtlyuvpmzi.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpYndybmRtYnVndGx5dXZwbXppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5NDAwNDEsImV4cCI6MjEwMTUxNjA0MX0.LyGYmfs4ib7m09Hhwhogx37yLBQC4bAx-v_95DFt-v4';
+const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const isLiveSupabase = Boolean(
+  rawUrl &&
+  !rawUrl.includes('bibwrndmbugtlyuvpmzi') &&
+  rawUrl.startsWith('https://')
+);
+
+export const supabase: any = isLiveSupabase
+  ? createClient(rawUrl, rawKey)
+  : {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: null, error: null }),
+            single: async () => ({ data: null, error: null }),
+          }),
+          ilike: () => ({
+            limit: () => ({
+              maybeSingle: async () => ({ data: null, error: null }),
+            }),
+          }),
+          order: () => ({
+            limit: async () => ({ data: [], error: null }),
+          }),
+          gte: async () => ({ count: 0, data: [], error: null }),
+          neq: async () => ({ count: 0, data: [], error: null }),
+        }),
+        insert: async () => ({ data: null, error: null }),
+      }),
+    };

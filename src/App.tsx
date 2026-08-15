@@ -578,42 +578,60 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
       const urlToken = urlParams.get('token');
 
       try {
-        const { data, error } = await supabase
-          .from('invoices')
-          .select('*, invoice_items(*)')
-          .eq('id', normalizedId)
-          .maybeSingle();
+        let invoiceRecord: any = null;
 
-        // Block access if token is missing or doesn't match
-        if (!data || error || !urlToken || data.token !== urlToken) {
-          setLoading(false);
-          return; // invoice stays null → shows "not found"
+        // 1. Try Supabase
+        try {
+          const { data, error } = await supabase
+            .from('invoices')
+            .select('*, invoice_items(*)')
+            .eq('id', normalizedId)
+            .maybeSingle();
+
+          if (data && !error && urlToken && data.token === urlToken) {
+            invoiceRecord = data;
+          }
+        } catch (sErr) {
+          console.warn('Supabase fetch failed, trying POS API fallback:', sErr);
         }
 
-        if (data && !error) {
-          document.title = `${data.id} - Digital Receipt | I-Store`;
+        // 2. Fallback to live POS API if Supabase did not return data
+        if (!invoiceRecord && urlToken) {
+          try {
+            const apiBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+            const res = await fetch(`${apiBase}/public/invoice/${normalizedId}?token=${urlToken}`);
+            if (res.ok) {
+              invoiceRecord = await res.json();
+            }
+          } catch (apiErr) {
+            console.warn('POS API fallback error:', apiErr);
+          }
+        }
+
+        if (invoiceRecord) {
+          document.title = `${invoiceRecord.id} - Digital Receipt | I-Store`;
           setInvoice({
-            id: data.id,
-            token: data.token,
-            shortCode: data.id,
-            date: new Date(data.created_at).toLocaleString(),
-            customerName: data.customer_name,
-            customerPhone: data.customer_phone,
-            customerEmail: data.customer_email || '',
+            id: invoiceRecord.id,
+            token: invoiceRecord.token,
+            shortCode: invoiceRecord.id,
+            date: new Date(invoiceRecord.created_at || Date.now()).toLocaleString(),
+            customerName: invoiceRecord.customer_name,
+            customerPhone: invoiceRecord.customer_phone,
+            customerEmail: invoiceRecord.customer_email || '',
             loyaltyPoints: 100,
-            items: (data.invoice_items || []).map((item: any) => ({
+            items: (invoiceRecord.invoice_items || []).map((item: any) => ({
               name: item.item_name,
               qty: item.quantity,
               price: item.unit_price,
               warrantyMonths: item.warranty_months,
               imeiOrSerial: item.imei_or_serial
             })),
-            subtotal: data.subtotal,
-            tax: data.tax || 0,
-            discount: data.discount || 0,
-            total: data.total,
-            paymentMethod: data.payment_method,
-            status: data.status || 'Paid'
+            subtotal: invoiceRecord.subtotal,
+            tax: invoiceRecord.tax || 0,
+            discount: invoiceRecord.discount || 0,
+            total: invoiceRecord.total,
+            paymentMethod: invoiceRecord.payment_method,
+            status: invoiceRecord.status || 'Paid'
           });
         }
       } catch (err) {
@@ -942,37 +960,58 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
       const queryId = id.trim().replace(/\s+/g, '-').toUpperCase();
 
       try {
-        let { data, error } = await supabase
-          .from('repair_tickets')
-          .select('*')
-          .eq('id', queryId)
-          .maybeSingle();
+        let ticketData: any = null;
 
-        if (!data || error) {
-          const { data: fuzzy } = await supabase
+        // 1. Try Supabase
+        try {
+          let { data, error } = await supabase
             .from('repair_tickets')
             .select('*')
-            .ilike('id', `%${queryId}%`)
-            .limit(1)
+            .eq('id', queryId)
             .maybeSingle();
-          data = fuzzy;
+
+          if (!data || error) {
+            const { data: fuzzy } = await supabase
+              .from('repair_tickets')
+              .select('*')
+              .ilike('id', `%${queryId}%`)
+              .limit(1)
+              .maybeSingle();
+            data = fuzzy;
+          }
+          if (data) ticketData = data;
+        } catch (sErr) {
+          console.warn('Supabase repair fetch failed, trying POS API fallback:', sErr);
         }
 
-        if (data) {
-          document.title = `${data.id} - Live Repair Tracking | I-Store`;
+        // 2. Fallback to live POS API
+        if (!ticketData) {
+          try {
+            const apiBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+            const res = await fetch(`${apiBase}/public/repair/${queryId}`);
+            if (res.ok) {
+              ticketData = await res.json();
+            }
+          } catch (apiErr) {
+            console.warn('POS API repair fallback error:', apiErr);
+          }
+        }
+
+        if (ticketData) {
+          document.title = `${ticketData.id} - Live Repair Tracking | I-Store`;
           setTicket({
-            id: data.id,
-            customer_phone: data.customer_phone || '',
-            customer_name: data.customer_name || 'Valued Customer',
-            device_name: data.device_name || 'Device',
-            imei_or_serial: data.imei_or_serial || '',
-            issue_description: data.issue_description || 'General Inspection',
-            status: data.status || 'Submitted',
-            status_note: data.status_note || '',
-            estimated_cost: Number(data.estimated_cost || 0),
-            advance_paid: Number(data.advance_paid || 0),
-            balance_due: Number(data.balance_due || (Number(data.estimated_cost || 0) - Number(data.advance_paid || 0))),
-            created_at: data.created_at || new Date().toISOString(),
+            id: ticketData.id,
+            customer_phone: ticketData.customer_phone || '',
+            customer_name: ticketData.customer_name || 'Valued Customer',
+            device_name: ticketData.device_name || 'Device',
+            imei_or_serial: ticketData.imei_or_serial || '',
+            issue_description: ticketData.issue_description || 'General Inspection',
+            status: ticketData.status || 'Submitted',
+            status_note: ticketData.status_note || '',
+            estimated_cost: Number(ticketData.estimated_cost || 0),
+            advance_paid: Number(ticketData.advance_paid || 0),
+            balance_due: Number(ticketData.balance_due || (Number(ticketData.estimated_cost || 0) - Number(ticketData.advance_paid || 0))),
+            created_at: ticketData.created_at || new Date().toISOString(),
           });
         }
       } catch (err) {

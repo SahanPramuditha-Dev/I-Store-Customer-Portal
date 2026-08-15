@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   Search,
   ArrowRight,
-  ReceiptText
+  ReceiptText,
+  Loader2
 } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -157,8 +158,27 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
     setSearchError('');
 
     try {
-      // Normalize spaces to hyphens (e.g., "INV 2026 000002" -> "INV-2026-000002")
+      // Normalize spaces to hyphens (e.g., "JOB 2026 000001" -> "JOB-2026-000001")
       const query = searchId.trim().replace(/\s+/g, '-').toUpperCase();
+
+      // If user is searching for a repair job directly
+      if (query.startsWith('JOB') || query.startsWith('REP')) {
+        const { data: repairData } = await supabase
+          .from('repair_tickets')
+          .select('id')
+          .ilike('id', `%${query}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (repairData) {
+          window.location.href = `/repair/${repairData.id}`;
+          return;
+        } else {
+          // Direct navigation attempt
+          window.location.href = `/repair/${query}`;
+          return;
+        }
+      }
 
       if (!phoneLogin.trim()) {
         setSearchError('Please enter your registered phone number first to search invoices.');
@@ -571,6 +591,7 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
         }
 
         if (data && !error) {
+          document.title = `${data.id} - Digital Receipt | I-Store`;
           setInvoice({
             id: data.id,
             token: data.token,
@@ -887,6 +908,336 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* PUBLIC REPAIR TRACKING PAGE                                                */
+/* -------------------------------------------------------------------------- */
+interface RepairTicketRecord {
+  id: string;
+  customer_phone: string;
+  customer_name?: string;
+  device_name: string;
+  imei_or_serial?: string;
+  issue_description: string;
+  status: string;
+  status_note?: string;
+  estimated_cost?: number;
+  advance_paid?: number;
+  balance_due?: number;
+  created_at: string;
+}
+
+function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
+  const { id } = useParams<{ id: string }>();
+  const [ticket, setTicket] = useState<RepairTicketRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTicket = async () => {
+      if (!id) return;
+      setLoading(true);
+      const queryId = id.trim().replace(/\s+/g, '-').toUpperCase();
+
+      try {
+        let { data, error } = await supabase
+          .from('repair_tickets')
+          .select('*')
+          .eq('id', queryId)
+          .maybeSingle();
+
+        if (!data || error) {
+          const { data: fuzzy } = await supabase
+            .from('repair_tickets')
+            .select('*')
+            .ilike('id', `%${queryId}%`)
+            .limit(1)
+            .maybeSingle();
+          data = fuzzy;
+        }
+
+        if (data) {
+          document.title = `${data.id} - Live Repair Tracking | I-Store`;
+          setTicket({
+            id: data.id,
+            customer_phone: data.customer_phone || '',
+            customer_name: data.customer_name || 'Valued Customer',
+            device_name: data.device_name || 'Device',
+            imei_or_serial: data.imei_or_serial || '',
+            issue_description: data.issue_description || 'General Inspection',
+            status: data.status || 'Submitted',
+            status_note: data.status_note || '',
+            estimated_cost: Number(data.estimated_cost || 0),
+            advance_paid: Number(data.advance_paid || 0),
+            balance_due: Number(data.balance_due || (Number(data.estimated_cost || 0) - Number(data.advance_paid || 0))),
+            created_at: data.created_at || new Date().toISOString(),
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load repair tracking data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTicket();
+  }, [id]);
+
+  const fullUrl = window.location.href;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+        <p className="text-sm font-semibold text-slate-400">Loading repair job details...</p>
+      </div>
+    );
+  }
+
+  if (!ticket) {
+    return (
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+          <Wrench className="w-7 h-7" />
+        </div>
+        <h2 className="text-xl font-bold">Repair Ticket Not Found</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
+          The requested repair job <span className="font-mono font-bold text-slate-800 dark:text-slate-200">"{id}"</span> could not be found. Please ensure the ticket number is correct or chat with our service team.
+        </p>
+        <div className="flex gap-2">
+          <Link to="/" className="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200">
+            Back to Home
+          </Link>
+          <a
+            href="https://wa.me/94771234567"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
+          >
+            Chat with Support
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Progress Stepper Status Logic
+  const rawStatus = (ticket.status || '').toLowerCase();
+  const getStepNumber = (st: string) => {
+    if (st.includes('deliver') || st.includes('collect')) return 6;
+    if (st.includes('complet') || st.includes('ready')) return 5;
+    if (st.includes('quality') || st.includes('qc')) return 4;
+    if (st.includes('repair') || st.includes('part')) return 3;
+    if (st.includes('diagnos') || st.includes('inspect') || st.includes('approv')) return 2;
+    return 1;
+  };
+
+  const currentStep = getStepNumber(rawStatus);
+  const isCancelled = rawStatus.includes('cancel');
+
+  const steps = [
+    { num: 1, label: 'Ticket Intake', desc: 'Registered in system' },
+    { num: 2, label: 'Diagnosis', desc: 'Hardware inspection' },
+    { num: 3, label: 'Servicing', desc: 'Parts & labor underway' },
+    { num: 4, label: 'Quality Check', desc: 'Bench testing & QA' },
+    { num: 5, label: 'Ready for Pickup', desc: 'Repairs completed' },
+    { num: 6, label: 'Delivered', desc: 'Handed to customer' },
+  ];
+
+  return (
+    <div className="min-h-screen p-3 sm:p-6 md:p-8 font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-300">
+      <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+        
+        {/* Top Action Bar */}
+        <div className="no-print bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-3 sm:p-5 flex flex-wrap items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center space-x-2.5">
+            <div className="bg-indigo-500/10 border border-indigo-500/30 p-2 rounded-xl text-indigo-600 dark:text-indigo-400 shrink-0">
+              <Wrench className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Live Repair Tracking</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                  isCancelled 
+                    ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                    : currentStep >= 5 
+                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                    : 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-indigo-500/30'
+                }`}>
+                  {ticket.status}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Job Ticket #{ticket.id}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
+
+            <button
+              onClick={() => window.print()}
+              className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-semibold border border-slate-300 dark:border-slate-700 transition text-slate-800 dark:text-slate-200"
+            >
+              <Printer className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span className="hidden sm:inline">Print Job Card</span>
+            </button>
+            <a
+              href="https://wa.me/94771234567"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl text-xs font-bold text-white shadow-md shadow-emerald-500/25 transition active:scale-95"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Contact Tech</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Main Job Card */}
+        <div id="printable-repair" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-xl space-y-6 sm:space-y-8 transition-colors">
+          
+          {/* Header & QR Verification */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 dark:border-slate-800 pb-6 gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400" />
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">I-STORE REPAIR SERVICE</h1>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Authorized Mobile & Device Care Center | Support: +94 77 123 4567</p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">Official Customer Tracking Link</p>
+            </div>
+
+            {/* Smart QR Code */}
+            <div className="flex items-center space-x-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl shrink-0">
+              <div className="bg-white p-1 rounded-xl border border-slate-200">
+                <QRCodeSVG value={fullUrl} size={56} />
+              </div>
+              <div className="text-left text-xs">
+                <span className="font-bold text-indigo-600 dark:text-indigo-400 block">Scan to Track</span>
+                <span className="font-mono text-[11px] text-slate-800 dark:text-slate-300 font-bold block">{ticket.id}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stepper Progress Bar */}
+          <div className="space-y-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Servicing Milestones</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+              {steps.map((step) => {
+                const isPassed = !isCancelled && currentStep >= step.num;
+                const isCurrent = !isCancelled && currentStep === step.num;
+                return (
+                  <div
+                    key={step.num}
+                    className={`rounded-xl p-3 text-center border transition ${
+                      isCurrent
+                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-md ring-2 ring-indigo-500/30'
+                        : isPassed
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-white/40 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center mb-1">
+                      {isPassed ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <span className="text-[11px] font-mono font-bold">{step.num}</span>
+                      )}
+                    </div>
+                    <p className="font-bold text-xs">{step.label}</p>
+                    <p className={`text-[10px] mt-0.5 ${isCurrent ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {step.desc}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Device & Hardware Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <Smartphone className="w-4 h-4 text-indigo-500" />
+                <span>Device & Fault Information</span>
+              </div>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Device Model:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{ticket.device_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">IMEI / Serial:</span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{ticket.imei_or_serial || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Intake Date:</span>
+                  <span className="text-slate-700 dark:text-slate-300">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Reported Issue:</span>
+                  <p className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-medium text-slate-800 dark:text-slate-200">
+                    {ticket.issue_description}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Financial Breakdown */}
+            <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <Receipt className="w-4 h-4 text-emerald-500" />
+                <span>Financial & Payment Status</span>
+              </div>
+              <div className="space-y-2.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Estimated Total:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">LKR {ticket.estimated_cost?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Advance Paid:</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">- LKR {ticket.advance_paid?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                  <span className="font-bold text-slate-900 dark:text-white">Total Balance Due:</span>
+                  <span className="font-mono font-black text-sm text-indigo-600 dark:text-indigo-400">
+                    LKR {ticket.balance_due?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {ticket.status_note && (
+                  <div className="mt-3 p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-800 dark:text-indigo-300 text-[11px]">
+                    <span className="font-bold block mb-0.5">Technician Update:</span>
+                    {ticket.status_note}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Footer Action */}
+          <div className="no-print bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center space-x-2.5">
+              <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+              <div>
+                <p className="font-bold text-slate-900 dark:text-slate-200">Hardware Service Guarantee</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px]">Standard warranty issued upon delivery completion.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Link
+                to="/"
+                className="px-3.5 py-2 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold rounded-xl border border-slate-300 dark:border-slate-700 transition text-xs"
+              >
+                Back to Home
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1401,6 +1752,8 @@ export function App() {
         <Route path="/" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/invoice/:id" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/i/:shortCode" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/repair/:id" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/r/:id" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/portal" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/demo-hub" element={<AllFeaturesHub isDark={isDark} toggleTheme={toggleTheme} />} />
       </Routes>

@@ -1015,9 +1015,14 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
 
   useEffect(() => {
     const fetchTicket = async () => {
-      if (!id) return;
+      const urlParams = new URLSearchParams(window.location.search);
+      const rawId = id || urlParams.get('id') || urlParams.get('search') || urlParams.get('ticket') || '';
+      if (!rawId) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
-      const queryId = id.trim().replace(/\s+/g, '-').toUpperCase();
+      const queryId = rawId.trim().replace(/\s+/g, '-').toUpperCase();
 
       try {
         let ticketData: any = null;
@@ -1882,9 +1887,13 @@ export function App() {
         <Route path="/invoice/:id" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/i/:shortCode" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/repair/:id" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/repairs/:id" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/r/:id" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/repair" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/repairs" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/portal" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/demo-hub" element={<AllFeaturesHub isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="*" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
       </Routes>
     </BrowserRouter>
   );

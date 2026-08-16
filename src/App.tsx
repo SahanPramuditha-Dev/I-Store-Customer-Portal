@@ -20,7 +20,8 @@ import {
   Search,
   ArrowRight,
   ReceiptText,
-  Loader2
+  Loader2,
+  Camera
 } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -987,6 +988,8 @@ interface RepairTicketRecord {
   estimated_cost?: number;
   advance_paid?: number;
   balance_due?: number;
+  intake_photos?: Array<{ url: string; caption?: string; uploaded_at?: string }>;
+  completion_photos?: Array<{ url: string; caption?: string; uploaded_at?: string }>;
   created_at: string;
 }
 
@@ -1303,6 +1306,71 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
               </div>
             </div>
           </div>
+
+          {/* Device Inspection & Service Photos (Before & After) */}
+          {((ticket.intake_photos && ticket.intake_photos.length > 0) || (ticket.completion_photos && ticket.completion_photos.length > 0)) && (
+            <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  <Camera className="w-4 h-4 text-indigo-500" />
+                  <span>Device Inspection & Service Photos</span>
+                </div>
+                <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-bold">
+                  Verified Inspection
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Intake Photos (Before) */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+                    <span>Intake Condition (Before Service)</span>
+                  </span>
+                  {ticket.intake_photos && ticket.intake_photos.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {ticket.intake_photos.map((p: any, idx: number) => (
+                        <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-black/5 aspect-video flex items-center justify-center">
+                          <img src={p.url} alt={p.caption || 'Intake Photo'} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 text-[10px] text-white font-medium truncate">
+                            {p.caption || 'Initial condition'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-center text-slate-400 text-xs">
+                      No intake damage recorded
+                    </div>
+                  )}
+                </div>
+
+                {/* Completion Photos (After) */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                    <span>Completed Service (After Repair)</span>
+                  </span>
+                  {ticket.completion_photos && ticket.completion_photos.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {ticket.completion_photos.map((p: any, idx: number) => (
+                        <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-black/5 aspect-video flex items-center justify-center">
+                          <img src={p.url} alt={p.caption || 'Completion Photo'} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 text-[10px] text-white font-medium truncate">
+                            {p.caption || 'Completed repair'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-center text-slate-400 text-xs">
+                      Post-service QA in progress
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Quick Footer Action */}
           <div className="no-print bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 text-xs">

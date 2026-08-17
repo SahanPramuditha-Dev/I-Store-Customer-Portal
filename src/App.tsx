@@ -30,12 +30,14 @@ interface InvoiceItem {
   qty: number;
   price: number;
   warrantyMonths: number;
+  warrantyDays?: number;
   imeiOrSerial?: string;
 }
 
 interface Invoice {
   id: string;
   token: string;
+  storeId?: string;
   date: string;
   customerName: string;
   customerPhone: string;
@@ -51,17 +53,76 @@ interface Invoice {
   shortCode: string;
 }
 
+export interface StoreProfile {
+  id: string;
+  name: string;
+  tagline: string;
+  logo_url?: string;
+  phone?: string;
+  address?: string;
+  whatsapp_number?: string;
+  tax_id?: string;
+  theme_color?: string;
+}
+
+export const DEFAULT_STORE: StoreProfile = {
+  id: 'default',
+  name: 'I-STORE',
+  tagline: 'Digital Receipts & Warranty Portal',
+  phone: '+94 11 234 5678',
+  address: 'Liberty Plaza, Colombo 03',
+  whatsapp_number: '94771234567',
+  tax_id: '90218-VAT',
+  theme_color: '#06b6d4',
+};
+
+export async function fetchStoreProfile(storeId?: string | null): Promise<StoreProfile> {
+  if (!storeId || storeId === 'default') {
+    return DEFAULT_STORE;
+  }
+  const cleanId = storeId.trim().toLowerCase();
+  try {
+    const { data, error } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('id', cleanId)
+      .maybeSingle();
+
+    if (data && !error) {
+      return {
+        id: data.id,
+        name: data.name || cleanId.replace(/-/g, ' ').toUpperCase(),
+        tagline: data.tagline || DEFAULT_STORE.tagline,
+        logo_url: data.logo_url || '',
+        phone: data.phone || DEFAULT_STORE.phone,
+        address: data.address || DEFAULT_STORE.address,
+        whatsapp_number: data.whatsapp_number || DEFAULT_STORE.whatsapp_number,
+        tax_id: data.tax_id || DEFAULT_STORE.tax_id,
+        theme_color: data.theme_color || DEFAULT_STORE.theme_color,
+      };
+    }
+  } catch (err) {
+    console.warn('Could not fetch custom store profile, using fallback:', err);
+  }
+  return {
+    ...DEFAULT_STORE,
+    id: cleanId,
+    name: cleanId.replace(/-/g, ' ').toUpperCase(),
+  };
+}
+
 function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={onToggle}
+      type="button"
       title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-amber-400 border border-slate-300 dark:border-slate-700 transition-all duration-200 shadow-sm shrink-0 hover:scale-105 flex items-center justify-center"
+      className="p-2.5 rounded-2xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-400 border border-slate-200 dark:border-slate-700 transition-all duration-200 shadow-xs shrink-0 hover:scale-105 flex items-center justify-center cursor-pointer"
     >
       {isDark ? (
         <Sun className="w-5 h-5 text-amber-400 fill-amber-400/20" />
       ) : (
-        <Moon className="w-5 h-5 text-indigo-600 fill-indigo-600/20" />
+        <Moon className="w-5 h-5 text-slate-700 fill-slate-700/20" />
       )}
     </button>
   );
@@ -69,6 +130,8 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
 
 /* -------------------------------------------------------------------------- */
 function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
+  const { storeSlug } = useParams<{ storeSlug?: string }>();
+  const [storeProfile, setStoreProfile] = useState<StoreProfile>(DEFAULT_STORE);
   const [searchId, setSearchId] = useState('');
   const [phoneLogin, setPhoneLogin] = useState('');
   const [userLoggedIn, setUserLoggedIn] = useState(false);
@@ -78,7 +141,19 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
   const [customerInvoices, setCustomerInvoices] = useState<any[]>([]);
   const [loginError, setLoginError] = useState('');
 
-
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const storeParam = storeSlug || urlParams.get('store') || urlParams.get('s');
+    if (storeParam) {
+      fetchStoreProfile(storeParam).then(prof => {
+        setStoreProfile(prof);
+        document.title = `${prof.name} | Official Digital Bill & Warranty Portal`;
+      });
+    } else {
+      setStoreProfile(DEFAULT_STORE);
+      document.title = 'I-STORE | Official Digital Bill & Live Tracking';
+    }
+  }, [storeSlug]);
 
   // Generates phone number variations to match formats like +9477..., 9477..., 077..., or 77...
   const getPhoneVariations = (rawPhone: string): string[] => {
@@ -120,15 +195,21 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
         return;
       }
 
-      // Query Supabase for invoices matching any of these phone variations
+      // Query Supabase for invoices matching any of these phone variations (scoped by store when applicable)
       const orFilter = variations.map(v => `customer_phone.ilike.%${v}%`).join(',');
-      const { data, error } = await supabase
+      let query = supabase
         .from('invoices')
         .select('*, invoice_items(*)')
         .or(orFilter);
 
+      if (storeProfile.id && storeProfile.id !== 'default') {
+        query = query.eq('store_id', storeProfile.id);
+      }
+
+      const { data, error } = await query;
+
       if (error || !data || data.length === 0) {
-        setLoginError('No matching customer records found for this phone number.');
+        setLoginError(`No matching customer records found for ${storeProfile.name} with this phone number.`);
       } else {
         // PIN = last 4 digits of any invoice ID (e.g. INV-2026-000001 → "0001")
         const enteredPin = pinInput.trim().padStart(4, '0');
@@ -151,12 +232,13 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
     }
   };
 
-
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchId.trim()) return;
     setLoading(true);
     setSearchError('');
+
+    const storeQuery = storeProfile.id && storeProfile.id !== 'default' ? `?store=${storeProfile.id}` : '';
 
     try {
       // Normalize spaces to hyphens (e.g., "JOB 2026 000001" -> "JOB-2026-000001")
@@ -172,11 +254,10 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
           .maybeSingle();
 
         if (repairData) {
-          window.location.href = `/repair/${repairData.id}`;
+          window.location.href = `/repair/${repairData.id}${storeQuery}`;
           return;
         } else {
-          // Direct navigation attempt
-          window.location.href = `/repair/${query}`;
+          window.location.href = `/repair/${query}${storeQuery}`;
           return;
         }
       }
@@ -197,29 +278,41 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
       const orFilter = variations.map(v => `customer_phone.ilike.%${v}%`).join(',');
 
       // Match invoice ID AND phone number variation together
-      let { data, error } = await supabase
+      let invoiceQuery = supabase
         .from('invoices')
-        .select('id, token')
+        .select('id, token, store_id')
         .eq('id', query)
-        .or(orFilter)
-        .maybeSingle();
+        .or(orFilter);
+
+      if (storeProfile.id && storeProfile.id !== 'default') {
+        invoiceQuery = invoiceQuery.eq('store_id', storeProfile.id);
+      }
+
+      let { data, error } = await invoiceQuery.maybeSingle();
 
       // Fallback: partial ID match with same phone check
       if (!data && !error) {
-        const { data: fuzzy } = await supabase
+        let fuzzyQuery = supabase
           .from('invoices')
-          .select('id, token')
+          .select('id, token, store_id')
           .ilike('id', `%${query}%`)
           .or(orFilter)
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
+
+        if (storeProfile.id && storeProfile.id !== 'default') {
+          fuzzyQuery = fuzzyQuery.eq('store_id', storeProfile.id);
+        }
+
+        const { data: fuzzy } = await fuzzyQuery.maybeSingle();
         data = fuzzy;
       }
 
       if (error || !data) {
-        setSearchError(`Invoice "${searchId}" not found. Make sure the invoice ID and phone number match.`);
+        setSearchError(`Invoice "${searchId}" not found for ${storeProfile.name}. Make sure the invoice ID and phone number match.`);
       } else {
-        window.location.href = `/invoice/${data.id}?token=${data.token}`;
+        const itemStore = data.store_id || storeProfile.id;
+        const sParam = itemStore && itemStore !== 'default' ? `&store=${itemStore}` : '';
+        window.location.href = `/invoice/${data.id}?token=${data.token}${sParam}`;
       }
     } catch {
       setSearchError('Connection error. Please try again.');
@@ -230,30 +323,30 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
 
 
   return (
-    <div className="min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-300 overflow-x-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-white transition-colors duration-300 overflow-x-hidden bg-slate-50/60 dark:bg-slate-950">
       
       {/* Premium Background Mesh Glows & Ambient Lights */}
-      <div className="fixed top-[-250px] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-tr from-cyan-500/20 via-blue-600/10 to-indigo-600/20 rounded-full blur-[160px] pointer-events-none -z-10 dark:opacity-40 opacity-20 animate-pulse duration-[8000ms]"></div>
-      <div className="fixed bottom-[-100px] left-[-10%] w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[140px] pointer-events-none -z-10"></div>
-      <div className="fixed top-[400px] right-[-10%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+      <div className="fixed top-[-250px] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-tr from-cyan-500/20 via-blue-600/10 to-indigo-600/20 rounded-full blur-[160px] pointer-events-none -z-10 dark:opacity-40 opacity-30 animate-pulse duration-[8000ms]"></div>
+      <div className="fixed bottom-[-100px] left-[-10%] w-[500px] h-[500px] bg-cyan-500/10 dark:bg-cyan-500/5 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+      <div className="fixed top-[400px] right-[-10%] w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none -z-10"></div>
 
       {/* Responsive Navbar */}
-      <header className="border-b border-slate-200/80 dark:border-slate-800/85 bg-white/70 dark:bg-slate-950/70 backdrop-blur-3xl sticky top-0 z-50 px-4 md:px-8 py-3.5 shadow-sm">
+      <header className="border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50 px-4 md:px-8 py-3.5 shadow-xs">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2.5 sm:space-x-3 group">
-            <div className="bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-cyan-500/25 shrink-0 transition-transform duration-300 group-hover:scale-105">
+            <div className="bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 p-2.5 sm:p-3 rounded-2xl text-white shadow-md shadow-cyan-500/20 shrink-0 transition-transform duration-300 group-hover:scale-105">
               <Smartphone className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
               <div className="flex items-center space-x-1.5 sm:space-x-2">
-                <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                  I-STORE
+                <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                  {storeProfile.name}
                 </span>
-                <span className="text-[9px] sm:text-[10px] uppercase font-extrabold tracking-widest bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/30 px-2.5 py-0.5 rounded-full shadow-sm">
+                <span className="text-[9px] sm:text-[10px] uppercase font-extrabold tracking-widest bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/25 dark:border-cyan-500/30 px-2.5 py-0.5 rounded-full shadow-xs">
                   Customer Care
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">Digital Receipts & Warranty Portal</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">{storeProfile.tagline}</p>
             </div>
           </div>
 
@@ -264,66 +357,66 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
       </header>
 
       {/* Hero Section */}
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 md:px-8 py-8 md:py-20 space-y-20">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 md:px-8 py-8 md:py-16 space-y-16">
         
         {/* Main Hero Header */}
-        <div className="text-center max-w-4xl mx-auto space-y-5 sm:space-y-7 animate-fade-in">
-          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 px-4 py-1.5 rounded-full text-xs font-bold text-cyan-800 dark:text-cyan-400 shadow-sm backdrop-blur-sm">
+        <div className="text-center max-w-4xl mx-auto space-y-5 sm:space-y-6 animate-fade-in">
+          <div className="inline-flex items-center space-x-2 bg-cyan-500/10 border border-cyan-500/25 px-4 py-1.5 rounded-full text-xs font-bold text-cyan-800 dark:text-cyan-400 shadow-xs backdrop-blur-sm">
             <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400 animate-spin duration-3000" />
-            <span>Official Customer Service Portal</span>
+            <span>Official {storeProfile.name} Customer Portal</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.12]">
             Never Lose a Receipt.<br className="hidden sm:inline" />
-            <span className="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 dark:from-cyan-400 dark:via-blue-500 dark:to-indigo-400 bg-clip-text text-transparent">
               Never Miss a Warranty.
             </span>
           </h1>
 
           <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed px-2">
-            Trusted digital warranty management by <strong className="text-slate-900 dark:text-slate-200">I-STORE</strong>. 
+            Trusted digital warranty management by <strong className="text-slate-900 dark:text-slate-200">{storeProfile.name}</strong>. 
             Access all your purchase histories, serial/IMEI details, and warranty terms directly from your browser.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-3 pt-1 text-[11px] sm:text-xs text-slate-500 font-bold">
-            <span className="bg-white dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800/80 shadow-sm transition hover:border-cyan-500/30">✓ Secure Digital Receipts</span>
-            <span className="bg-white dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800/80 shadow-sm transition hover:border-cyan-500/30">✓ Instant Warranty Access</span>
-            <span className="bg-white dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800/80 shadow-sm transition hover:border-cyan-500/30">✓ Seamless Online Repairs</span>
+          <div className="flex flex-wrap justify-center gap-2.5 pt-1 text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 font-semibold">
+            <span className="bg-white dark:bg-slate-900/60 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 shadow-xs transition hover:border-cyan-500/30">✓ Secure Digital Receipts</span>
+            <span className="bg-white dark:bg-slate-900/60 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 shadow-xs transition hover:border-cyan-500/30">✓ Instant Warranty Access</span>
+            <span className="bg-white dark:bg-slate-900/60 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 shadow-xs transition hover:border-cyan-500/30">✓ Seamless Online Repairs</span>
           </div>
 
           {/* Unified Secure Access Widget */}
-          <div className="max-w-xl mx-auto pt-4 sm:pt-6">
-            <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800/80 p-6 rounded-3xl shadow-2xl space-y-4 relative group transition-all duration-300 hover:shadow-cyan-500/5">
+          <div className="max-w-xl mx-auto pt-3 sm:pt-5">
+            <div className="bg-white dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 p-6 sm:p-7 rounded-3xl shadow-xl shadow-slate-200/60 dark:shadow-none space-y-4 relative group transition-all duration-300">
               
               {/* Outer decorative light bar */}
               <div className="absolute inset-x-12 -top-px h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
               
               <div className="text-left">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Secure Warranty Vault & Bill Access</h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Enter your registered details to view purchase history or check active warranties.</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Secure Warranty Vault & Bill Access</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Enter your registered details to view purchase history or check active warranties.</p>
               </div>
 
               {!userLoggedIn ? (
                 <form onSubmit={handleSearch} className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400">Mobile Number</label>
-                      <div className="flex items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2">
-                        <Search className="w-4 h-4 text-cyan-500 shrink-0 mr-2" />
+                      <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Mobile Number</label>
+                      <div className="flex items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus-within:border-cyan-500 dark:focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-500/15 rounded-xl px-3 py-2 transition-all">
+                        <Search className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0 mr-2" />
                         <input
                           type="tel"
                           value={phoneLogin}
                           onChange={(e) => setPhoneLogin(e.target.value)}
                           placeholder="e.g. +94 77 123 4567"
-                          className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-mono"
+                          className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-hidden placeholder:text-slate-400 font-mono"
                           required
                         />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400">Invoice ID or last 4 digits</label>
-                      <div className="flex items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2">
-                        <span className="text-xs text-slate-400 shrink-0 mr-2 font-mono">#</span>
+                      <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Invoice ID or last 4 digits</label>
+                      <div className="flex items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus-within:border-cyan-500 dark:focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-500/15 rounded-xl px-3 py-2 transition-all">
+                        <span className="text-xs text-slate-400 shrink-0 mr-2 font-mono font-bold">#</span>
                         <input
                           type="text"
                           value={searchId}
@@ -332,7 +425,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                             setPinInput(e.target.value); // Sync to pinInput too so verification checks match
                           }}
                           placeholder="e.g. INV-2026-000001 or 0001"
-                          className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-mono"
+                          className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-hidden placeholder:text-slate-400 font-mono"
                           required
                         />
                       </div>
@@ -343,7 +436,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                     <button
                       type="submit"
                       disabled={loading}
-                      className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-sm transition active:scale-95"
+                      className="px-4 py-2.5 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:via-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-xs transition active:scale-95 cursor-pointer"
                     >
                       <span>Find Receipt</span>
                       <ArrowRight className="w-4 h-4" />
@@ -355,7 +448,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                         handleVerifyCustomer();
                       }}
                       disabled={loading}
-                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-sm transition active:scale-95"
+                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-xs transition active:scale-95 cursor-pointer"
                     >
                       <ShieldCheck className="w-4 h-4" />
                       <span>Enter Vault Portal</span>
@@ -379,7 +472,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                     </div>
                     <button
                       onClick={() => { setUserLoggedIn(false); setCustomerInvoices([]); }}
-                      className="text-[10px] text-slate-500 hover:underline font-bold"
+                      className="text-[10px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline font-bold cursor-pointer"
                     >
                       Sign Out
                     </button>
@@ -389,14 +482,14 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                     <p className="text-[11px] font-bold text-slate-900 dark:text-white">Your Purchase History ({customerInvoices.length}):</p>
                     <div className="space-y-1.5 max-h-40 overflow-y-auto">
                       {customerInvoices.map((inv, idx) => (
-                        <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                        <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs shadow-xs">
                           <div>
                             <span className="font-mono font-bold text-cyan-600 dark:text-cyan-400">{inv.id}</span>
-                            <span className="text-[9px] text-slate-500 ml-2">{new Date(inv.created_at).toLocaleDateString()}</span>
+                            <span className="text-[10px] text-slate-500 ml-2">{new Date(inv.created_at).toLocaleDateString()}</span>
                           </div>
                           <Link
                             to={`/invoice/${inv.id}?token=${inv.token}`}
-                            className="px-2 py-0.5 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg text-[10px] font-bold hover:underline"
+                            className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 rounded-lg text-[10px] font-bold transition"
                           >
                             View ➔
                           </Link>
@@ -407,12 +500,12 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
                 </div>
               )}
 
-              <div className="border-t border-slate-100 dark:border-slate-800/80 pt-3 flex items-center justify-between text-[10px] text-slate-500">
+              <div className="border-t border-slate-200/80 dark:border-slate-800/80 pt-3 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
                 <span className="flex items-center">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 mr-1" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500 mr-1" />
                   Secure verification required
                 </span>
-                <span className="font-medium text-cyan-500">No password required</span>
+                <span className="font-medium text-cyan-600 dark:text-cyan-400">No password required</span>
               </div>
             </div>
           </div>
@@ -420,8 +513,8 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
 
         {/* 3 Real-World Benefit Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-md hover:shadow-xl transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
               <Receipt className="w-6 h-6" />
             </div>
             <h3 className="font-bold text-lg text-slate-900 dark:text-white">📄 Digital Receipts</h3>
@@ -430,8 +523,8 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
             </p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-md hover:shadow-xl transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-cyan-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <h3 className="font-bold text-lg text-slate-900 dark:text-white">🛡️ Warranty Vault</h3>
@@ -440,8 +533,8 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
             </p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-md hover:shadow-xl transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-cyan-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <Wrench className="w-6 h-6" />
             </div>
             <h3 className="font-bold text-lg text-slate-900 dark:text-white">🔧 Easy Repairs</h3>
@@ -452,42 +545,42 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
         </div>
 
         {/* How It Works Section */}
-        <div className="space-y-8 bg-slate-50 dark:bg-slate-900/40 p-8 rounded-3xl border border-slate-200 dark:border-slate-800/80">
+        <div className="space-y-8 bg-slate-100/70 dark:bg-slate-900/40 p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs">
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Simple, Seamless, Secure.</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">Access your digital care portal in three simple steps.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
             <div className="space-y-2">
-              <div className="w-10 h-10 bg-cyan-500 text-white rounded-full flex items-center justify-center font-bold mx-auto text-sm">1</div>
+              <div className="w-10 h-10 bg-cyan-600 text-white rounded-full flex items-center justify-center font-bold mx-auto text-sm shadow-xs">1</div>
               <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider">Buy Your Device</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Make any purchase at I-STORE to automatically trigger system registration.</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Make any purchase at I-STORE to automatically trigger system registration.</p>
             </div>
             <div className="space-y-2">
-              <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mx-auto text-sm">2</div>
+              <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mx-auto text-sm shadow-xs">2</div>
               <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider">Receive Link</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Get a zero-cost secure digital bill link instantly via WhatsApp or Email message.</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Get a zero-cost secure digital bill link instantly via WhatsApp or Email message.</p>
             </div>
             <div className="space-y-2">
-              <div className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold mx-auto text-sm">3</div>
+              <div className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold mx-auto text-sm shadow-xs">3</div>
               <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider">Access Anytime</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Log in below or scan your invoice QR code to manage warranty & repairs instantly.</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Log in below or scan your invoice QR code to manage warranty & repairs instantly.</p>
             </div>
           </div>
         </div>
 
         {/* Support Call to Action */}
-        <div className="max-w-xl mx-auto bg-gradient-to-br from-cyan-500/5 to-indigo-500/5 border border-cyan-500/20 rounded-3xl p-6 text-center space-y-3">
+        <div className="max-w-xl mx-auto bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-indigo-950/20 border border-cyan-200/80 dark:border-cyan-500/20 rounded-3xl p-6 sm:p-7 text-center space-y-3 shadow-xs">
           <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Need Assistance with your Purchase?</h4>
           <p className="text-xs text-slate-600 dark:text-slate-400">If you have any questions regarding your warranty terms or active repairs, chat with our care team.</p>
           <a
-            href="https://wa.me/94771234567"
+            href={`https://wa.me/${(storeProfile.whatsapp_number || '94771234567').replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-emerald-600/20"
           >
             <MessageSquare className="w-4 h-4 fill-white" />
-            <span>Chat with I-STORE Care</span>
+            <span>Chat with {storeProfile.name} Care</span>
           </a>
         </div>
 
@@ -501,9 +594,10 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
               <div className="bg-cyan-500/10 p-2 rounded-xl text-cyan-600">
                 <Smartphone className="w-4 h-4" />
               </div>
-              <span className="font-black text-sm text-slate-900 dark:text-white">I-STORE DIGITAL CARE</span>
+              <span className="font-black text-sm text-slate-900 dark:text-white">{storeProfile.name} DIGITAL CARE</span>
             </div>
-            <p className="leading-relaxed">Providing secure electronic receipts, automatic warranty vault registrations, and streamlined cloud-based repair processing.</p>
+            <p className="leading-relaxed">Providing secure electronic receipts, automatic warranty vault registrations, and streamlined cloud-based repair processing for {storeProfile.name}.</p>
+            <p className="text-[11px] text-slate-400">{storeProfile.address} · Helpline: {storeProfile.phone}</p>
           </div>
           <div className="space-y-2">
             <h4 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider">Quick Policies</h4>
@@ -526,7 +620,7 @@ function StoreLandingPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
           </div>
         </div>
         <div className="max-w-6xl mx-auto pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] gap-3">
-          <p>© 2026 I-Store Electronics. Powered by Supabase & Nexius Platform.</p>
+          <p>© 2026 {storeProfile.name}. Powered by Supabase & Nexius Platform.</p>
           <p className="font-medium text-slate-400">All registered devices are verified through hardware hash registration.</p>
         </div>
       </footer>
@@ -560,7 +654,8 @@ const isValidSecurityToken = (invoiceId: string, token: string | null): boolean 
 /* PUBLIC INVOICE PAGE                                                        */
 /* -------------------------------------------------------------------------- */
 function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
-  const { id } = useParams<{ id: string }>();
+  const { id, storeSlug } = useParams<{ id: string; storeSlug?: string }>();
+  const [storeProfile, setStoreProfile] = useState<StoreProfile>(DEFAULT_STORE);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [repairModalOpen, setRepairModalOpen] = useState(false);
@@ -573,6 +668,7 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
       await supabase.from('repair_tickets').insert([
         {
           id: ticketId,
+          store_id: storeProfile.id,
           customer_phone: invoice.customerPhone,
           device_name: invoice.items[0]?.name || 'Electronic Device',
           imei_or_serial: invoice.items[0]?.imeiOrSerial || 'N/A',
@@ -598,7 +694,13 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
       // Validate token from URL
       const urlParams = new URLSearchParams(window.location.search);
       const urlToken = urlParams.get('token');
+      const storeParam = storeSlug || urlParams.get('store') || urlParams.get('s');
       const isSignatureValid = isValidSecurityToken(normalizedId, urlToken);
+
+      // Load store branding
+      if (storeParam) {
+        fetchStoreProfile(storeParam).then(prof => setStoreProfile(prof));
+      }
 
       // 1. Instant Zero-Latency Verified Rendering
       if (isSignatureValid) {
@@ -612,10 +714,22 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
         const itemName = urlParams.get('item') || (normalizedId === 'INV-2026-000002' ? 'iPhone 12 (128GB)' : 'Retail Product Item');
         const imeiVal = urlParams.get('imei') || '';
 
-        document.title = `${normalizedId} - Digital Receipt | I-Store`;
+        const rawWarranty = urlParams.get('warranty') ?? urlParams.get('warranty_months');
+        const rawWarrantyDays = urlParams.get('warranty_days');
+        let warrantyDaysVal = rawWarrantyDays !== null ? Number(rawWarrantyDays) : 0;
+        let warrantyMonthsVal = rawWarranty !== null ? Number(rawWarranty) : (warrantyDaysVal > 0 ? Math.round(warrantyDaysVal / 30) : 0);
+        if (rawWarranty === null && rawWarrantyDays === null) {
+          if (normalizedId === 'INV-2026-000002') {
+            warrantyMonthsVal = 12;
+            warrantyDaysVal = 365;
+          }
+        }
+
+        document.title = `${normalizedId} - Digital Receipt | ${storeProfile.name}`;
         setInvoice({
           id: normalizedId,
           token: urlToken || 'sec_verified',
+          storeId: storeParam || 'default',
           shortCode: normalizedId,
           date: new Date().toLocaleString(),
           customerName: nameVal,
@@ -627,7 +741,8 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
               name: itemName,
               qty: 1,
               price: totalVal,
-              warrantyMonths: 12,
+              warrantyMonths: warrantyMonthsVal,
+              warrantyDays: warrantyDaysVal,
               imeiOrSerial: imeiVal || undefined
             }
           ],
@@ -653,9 +768,13 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
         const res: any = await Promise.race([supabasePromise, timeoutPromise]);
         if (res && res.data && !res.error && isSignatureValid) {
           const data = res.data;
+          if (data.store_id && data.store_id !== 'default') {
+            fetchStoreProfile(data.store_id).then(prof => setStoreProfile(prof));
+          }
           setInvoice({
             id: data.id,
             token: data.token,
+            storeId: data.store_id || 'default',
             shortCode: data.id,
             date: new Date(data.created_at || Date.now()).toLocaleString(),
             customerName: data.customer_name,
@@ -667,6 +786,7 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
               qty: item.quantity,
               price: item.unit_price,
               warrantyMonths: item.warranty_months,
+              warrantyDays: item.warranty_days || (item.warranty_months ? item.warranty_months * 30 : 0),
               imeiOrSerial: item.imei_or_serial
             })),
             subtotal: data.subtotal,
@@ -684,14 +804,15 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
       }
     };
     fetchInvoice();
-  }, [id]);
+  }, [id, storeSlug]);
 
   const fullUrl = window.location.href;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center text-sm font-semibold">
-        Loading invoice details...
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-600 dark:text-cyan-400" />
+        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Loading invoice details...</p>
       </div>
     );
   }
@@ -764,10 +885,10 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
             <div>
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600 dark:text-cyan-400" />
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">I-STORE MOBILE</h1>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">{storeProfile.name}</h1>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Liberty Plaza, Colombo 03 | Support: +94 11 234 5678</p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">Tax ID: 90218-VAT</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{storeProfile.address} | Support: {storeProfile.phone}</p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">Tax ID: {storeProfile.tax_id}</p>
             </div>
 
             {/* Smart QR Code Receipt */}
@@ -821,8 +942,20 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
                 {activeInvoice.items.map((item: InvoiceItem, idx: number) => {
                   const invoiceDate = new Date(activeInvoice.date);
                   const expiryDate = new Date(invoiceDate);
-                  expiryDate.setMonth(expiryDate.getMonth() + (item.warrantyMonths || 0));
-                  const isWarrantyActive = new Date() < expiryDate;
+                  const wDays = Number(item.warrantyDays || 0);
+                  const wMonths = Number(item.warrantyMonths || 0);
+                  const hasWarranty = wDays > 0 || wMonths > 0;
+
+                  if (wDays > 0) {
+                    expiryDate.setDate(expiryDate.getDate() + wDays);
+                  } else if (wMonths > 0) {
+                    expiryDate.setMonth(expiryDate.getMonth() + wMonths);
+                  }
+                  const isWarrantyActive = hasWarranty && (new Date() < expiryDate);
+
+                  const warrantyLabel = wDays > 0
+                    ? (wDays % 30 === 0 ? `${wDays / 30}M` : `${wDays} Days`)
+                    : (wMonths > 0 ? `${wMonths}M` : '');
 
                   return (
                     <tr key={idx}>
@@ -833,11 +966,11 @@ function PublicInvoicePage({ isDark, toggleTheme }: { isDark: boolean; toggleThe
                         )}
                       </td>
                       <td className="py-3 px-1.5 text-center text-[11px]">
-                        {item.warrantyMonths > 0 ? (
+                        {hasWarranty ? (
                           isWarrantyActive ? (
                             <span className="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-full font-bold inline-flex items-center space-x-1">
                               <span>Active</span>
-                              <span>({item.warrantyMonths}M)</span>
+                              <span>({warrantyLabel})</span>
                             </span>
                           ) : (
                             <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 px-2 py-0.5 rounded-full font-semibold">
@@ -994,7 +1127,8 @@ interface RepairTicketRecord {
 }
 
 function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
-  const { id } = useParams<{ id: string }>();
+  const { id, storeSlug } = useParams<{ id: string; storeSlug?: string }>();
+  const [storeProfile, setStoreProfile] = useState<StoreProfile>(DEFAULT_STORE);
   const [ticket, setTicket] = useState<RepairTicketRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -1002,6 +1136,12 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
     const fetchTicket = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const rawId = id || urlParams.get('id') || urlParams.get('search') || urlParams.get('ticket') || '';
+      const storeParam = storeSlug || urlParams.get('store') || urlParams.get('s');
+
+      if (storeParam) {
+        fetchStoreProfile(storeParam).then(prof => setStoreProfile(prof));
+      }
+
       if (!rawId) {
         setLoading(false);
         return;
@@ -1021,7 +1161,7 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
       const phoneVal = urlParams.get('phone') || (queryId === 'JOB-2026-000001' ? '+94764158980' : '');
       const imeiVal = urlParams.get('imei') || (queryId === 'JOB-2026-000001' ? '357441052530733' : '');
 
-      document.title = `${queryId} - Live Repair Tracking | I-Store`;
+      document.title = `${queryId} - Live Repair Tracking | ${storeProfile.name}`;
       setTicket({
         id: queryId,
         customer_phone: phoneVal,
@@ -1050,6 +1190,9 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
         const res: any = await Promise.race([supabasePromise, timeoutPromise]);
         if (res && res.data && !res.error) {
           const data = res.data;
+          if (data.store_id && data.store_id !== 'default') {
+            fetchStoreProfile(data.store_id).then(prof => setStoreProfile(prof));
+          }
           setTicket({
             id: data.id,
             customer_phone: data.customer_phone || '',
@@ -1073,15 +1216,15 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
     };
 
     fetchTicket();
-  }, [id]);
+  }, [id, storeSlug]);
 
   const fullUrl = window.location.href;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-        <p className="text-sm font-semibold text-slate-400">Loading repair job details...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Loading repair job details...</p>
       </div>
     );
   }
@@ -1094,14 +1237,14 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
         </div>
         <h2 className="text-xl font-bold">Repair Ticket Not Found</h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
-          The requested repair job <span className="font-mono font-bold text-slate-800 dark:text-slate-200">"{id}"</span> could not be found. Please ensure the ticket number is correct or chat with our service team.
+          The requested repair job <span className="font-mono font-bold text-slate-800 dark:text-slate-200">"{id}"</span> could not be found for {storeProfile.name}. Please ensure the ticket number is correct or chat with our service team.
         </p>
         <div className="flex gap-2">
           <Link to="/" className="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200">
             Back to Home
           </Link>
           <a
-            href="https://wa.me/94771234567"
+            href={`https://wa.me/${(storeProfile.whatsapp_number || '94771234567').replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
@@ -1168,13 +1311,13 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
 
             <button
               onClick={() => window.print()}
-              className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-semibold border border-slate-300 dark:border-slate-700 transition text-slate-800 dark:text-slate-200"
+              className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-semibold border border-slate-300 dark:border-slate-700 transition text-slate-800 dark:text-slate-200 cursor-pointer"
             >
               <Printer className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               <span className="hidden sm:inline">Print Job Card</span>
             </button>
             <a
-              href="https://wa.me/94771234567"
+              href={`https://wa.me/${(storeProfile.whatsapp_number || '94771234567').replace(/\D/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center space-x-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl text-xs font-bold text-white shadow-md shadow-emerald-500/25 transition active:scale-95"
@@ -1193,9 +1336,9 @@ function PublicRepairPage({ isDark, toggleTheme }: { isDark: boolean; toggleThem
             <div>
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400" />
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">I-STORE REPAIR SERVICE</h1>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">{storeProfile.name} REPAIR SERVICE</h1>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Authorized Mobile & Device Care Center | Support: +94 77 123 4567</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{storeProfile.address} | Support: {storeProfile.phone}</p>
               <p className="text-[11px] text-slate-400 dark:text-slate-500">Official Customer Tracking Link</p>
             </div>
 
@@ -1444,28 +1587,28 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-5 shadow-2xl">
-          <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl flex items-center justify-center mx-auto text-cyan-400">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-5 shadow-xl">
+          <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl flex items-center justify-center mx-auto text-cyan-600 dark:text-cyan-400">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-bold">Admin &amp; Delivery Hub</h2>
-          <p className="text-xs text-slate-400">Sign in using your I-Store POS staff username and PIN.</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Admin &amp; Delivery Hub</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Sign in using your I-Store POS staff username and PIN.</p>
 
           <form onSubmit={handleAdminAuth} className="space-y-3 text-left">
             <div>
-              <label className="text-xs font-semibold text-slate-400 block mb-1">Staff Username</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Staff Username</label>
               <input
                 type="text"
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
                 placeholder="e.g. admin or sahan"
                 autoComplete="username"
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:border-cyan-500"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-400 block mb-1">Staff PIN</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Staff PIN</label>
               <input
                 type="password"
                 maxLength={6}
@@ -1473,25 +1616,25 @@ function AllFeaturesHub({ isDark, toggleTheme }: { isDark: boolean; toggleTheme:
                 onChange={(e) => setPinInput(e.target.value)}
                 placeholder="Enter your POS PIN..."
                 autoComplete="current-password"
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-center text-sm font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl px-4 py-3 text-center text-sm font-mono tracking-widest text-slate-900 dark:text-white focus:outline-hidden focus:border-cyan-500"
               />
             </div>
 
             {pinError && (
-              <p className="text-xs text-rose-400 font-semibold text-center">{pinError}</p>
+              <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold text-center">{pinError}</p>
             )}
 
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-2xl text-xs font-bold text-white shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {authLoading ? 'Verifying with POS...' : 'Authenticate Admin Access'}
             </button>
           </form>
 
           <div className="pt-2">
-            <Link to="/" className="text-xs text-slate-500 hover:underline">
+            <Link to="/" className="text-xs text-slate-500 dark:text-slate-400 hover:underline">
               ← Return to Customer Portal
             </Link>
           </div>
@@ -1904,6 +2047,7 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Default / Legacy Routes */}
         <Route path="/" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/invoice/:id" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/i/:shortCode" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
@@ -1913,6 +2057,17 @@ export function App() {
         <Route path="/repair" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/repairs" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="/portal" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
+
+        {/* Multi-Tenant Store Scoped Routes (e.g. /store/i-point or /store/techzone) */}
+        <Route path="/store/:storeSlug" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/store/:storeSlug/invoice/:id" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/store/:storeSlug/i/:shortCode" element={<PublicInvoicePage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/store/:storeSlug/repair/:id" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/store/:storeSlug/repairs/:id" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/store/:storeSlug/r/:id" element={<PublicRepairPage isDark={isDark} toggleTheme={toggleTheme} />} />
+        <Route path="/store/:storeSlug/portal" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
+
+        {/* Admin / Delivery Demo Hub */}
         <Route path="/demo-hub" element={<AllFeaturesHub isDark={isDark} toggleTheme={toggleTheme} />} />
         <Route path="*" element={<StoreLandingPage isDark={isDark} toggleTheme={toggleTheme} />} />
       </Routes>

@@ -1,113 +1,74 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
-    --app-bg: radial-gradient(circle at 10% 10%, #1a2440 0%, #070b18 48%, #050814 100%);
-    --app-text: #f8fafc;
+    --app-bg: radial-gradient(circle at 50% 0%, #f0f7ff 0%, #f8fafc 40%, #edf2f7 100%);
+    --app-text: #0f172a;
+    color-scheme: light;
   }
 
-  html.light {
-    --app-bg: radial-gradient(circle at 10% 10%, #f8fbff 0%, #eef3ff 55%, #e8eefc 100%);
-    --app-text: #0f172a;
+  html.dark {
+    --app-bg: radial-gradient(circle at 10% 10%, #1a2440 0%, #070b18 48%, #050814 100%);
+    --app-text: #f8fafc;
+    color-scheme: dark;
   }
 
   body {
-    background: var(--app-bg) !important;
+    background: var(--app-bg);
     color: var(--app-text);
-    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-    transition: background 0.3s ease, color 0.3s ease;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, system-ui, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
     min-height: 100vh;
+    margin: 0;
   }
 }
 
-/* ========================================================================== */
-/* DARK MODE HIGH-CONTRAST LEGIBILITY RULES                                  */
-/* ========================================================================== */
-html.dark body {
-  background: radial-gradient(circle at 10% 10%, #1a2440 0%, #070b18 48%, #050814 100%) !important;
-  color: #f8fafc !important;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-html.dark h1,
-html.dark h2,
-html.dark h3,
-html.dark h4,
-html.dark .hero-title {
-  color: #ffffff !important;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-html.dark p,
-html.dark label {
-  color: #cbd5e1 !important;
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
 }
 
-html.dark span {
-  color: inherit;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
 }
 
-html.dark .bg-slate-900 {
-  background-color: #0f172a !important;
-  border-color: #1e293b !important;
-  color: #f8fafc !important;
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.6);
 }
 
-html.dark .bg-slate-950 {
-  background-color: #020617 !important;
-  border-color: #1e293b !important;
-  color: #f8fafc !important;
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.8);
 }
 
-html.dark header {
-  background-color: rgba(2, 6, 23, 0.85) !important;
-  border-color: #1e293b !important;
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* ========================================================================== */
-/* LIGHT MODE HIGH-CONTRAST LEGIBILITY RULES                                 */
-/* ========================================================================== */
-html.light body {
-  background: radial-gradient(circle at 10% 10%, #f8fbff 0%, #eef3ff 55%, #e8eefc 100%) !important;
-  color: #0f172a !important;
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
 }
 
-html.light h1,
-html.light h2,
-html.light h3,
-html.light h4,
-html.light .hero-title {
-  color: #0f172a !important;
-  -webkit-text-fill-color: initial !important;
-}
-
-html.light p,
-html.light label {
-  color: #334155 !important;
-}
-
-html.light span {
-  color: inherit;
-}
-
-html.light .bg-slate-900,
-html.light .bg-white {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05) !important;
-}
-
-html.light .bg-slate-950,
-html.light .bg-slate-50 {
-  background-color: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-}
-
-html.light header {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  border-color: #e2e8f0 !important;
-}
-
+/* High-Quality Print Styles */
 @media print {
   body {
     background: #ffffff !important;
@@ -116,10 +77,12 @@ html.light header {
   .no-print {
     display: none !important;
   }
-  #printable-invoice {
-    border: none !important;
+  #printable-invoice,
+  #printable-repair {
+    border: 1px solid #e2e8f0 !important;
     background: #ffffff !important;
     color: #000000 !important;
     box-shadow: none !important;
+    padding: 20px !important;
   }
 }

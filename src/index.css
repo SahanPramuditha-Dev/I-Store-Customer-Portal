@@ -56,7 +56,7 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -64,8 +64,34 @@
   }
 }
 
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.35);
+  }
+}
+
+@keyframes floatSubtle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
 .animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: floatSubtle 4s ease-in-out infinite;
 }
 
 /* High-Quality Print Styles */
@@ -84,5 +110,28 @@
     color: #000000 !important;
     box-shadow: none !important;
     padding: 20px !important;
+  }
+}
+
+/* ========================================================================== */
+/* LIGHT THEME CRISP COMPONENT BORDERS & HIGH-CONTRAST DEPTH                 */
+/* ========================================================================== */
+html:not(.dark) {
+  /* High contrast border definitions */
+  .portal-card-container {
+    border-color: #cbd5e1 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04) !important;
+  }
+
+  .portal-subcard {
+    border-color: #cbd5e1 !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px -1px rgba(15, 23, 42, 0.06), 0 1px 3px 0 rgba(15, 23, 42, 0.04) !important;
+  }
+
+  .portal-subcard:hover {
+    border-color: #06b6d4 !important;
+    box-shadow: 0 12px 25px -4px rgba(6, 182, 212, 0.18), 0 4px 10px -2px rgba(15, 23, 42, 0.06) !important;
   }
 }

@@ -16,21 +16,12 @@ export function createGoogleCalendarUrl(deviceName: string, serialOrImei: string
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&details=${encodeURIComponent(details)}&dates=${startStr}/${endStr}`;
 }
 
-export function isValidSecurityToken(id: string, token: string | null): boolean {
-  if (!token) return false;
-  if (token === 'sec_verified' || token === 'sec_demo_valid' || token.startsWith('token_auth_') || token.startsWith('offline_token_')) {
-    return true;
-  }
-  const cleanId = id.trim().toUpperCase();
-  let hash = 0;
-  const combined = `${cleanId}_salt_2026_istore_secret`;
-  for (let i = 0; i < combined.length; i++) {
-    const char = combined.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  const expected = `sec_${Math.abs(hash).toString(16)}`;
-  return token === expected;
+/**
+ * Receipt tokens are credentials and must only be checked by the portal API.
+ * Keeping a verifier in browser code would make every receipt forgeable.
+ */
+export function isValidSecurityToken(_id: string, _token: string | null): boolean {
+  return false;
 }
 
 export async function fetchStoreProfile(storeIdOrSlug?: string): Promise<StoreProfile> {

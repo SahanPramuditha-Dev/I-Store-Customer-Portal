@@ -6,6 +6,7 @@ import { supabase } from '../supabase';
 import { DEFAULT_STORE } from '../types';
 import type { StoreProfile } from '../types';
 import { fetchStoreProfile, ThemeToggle } from '../utils/security';
+import { resolveStoreSlug } from '../utils/domainResolver';
 
 export default function WarrantyVerifyView({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const { serial, storeSlug } = useParams<{ serial?: string; storeSlug?: string }>();
@@ -17,9 +18,9 @@ export default function WarrantyVerifyView({ isDark, toggleTheme }: { isDark: bo
     const fetchWarranty = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const querySerial = serial || urlParams.get('serial') || urlParams.get('imei') || urlParams.get('id') || '357441052530733';
-      const storeParam = storeSlug || urlParams.get('store') || urlParams.get('s');
+      const storeParam = resolveStoreSlug(storeSlug);
 
-      if (storeParam) {
+      if (storeParam && storeParam !== 'default') {
         fetchStoreProfile(storeParam).then(prof => setStoreProfile(prof));
       }
 

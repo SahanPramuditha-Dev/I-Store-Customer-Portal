@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import type { CustomerDevice, WarrantyClaimRecord } from '../../types';
 import { CustomSelect } from '../../components/ui/CustomSelect';
-import { supabase } from '../../supabase';
+import { createWarrantyClaim } from '../../services/portalActions';
 
 interface WarrantyClaimModalProps {
   isOpen: boolean;
@@ -67,42 +67,17 @@ export const WarrantyClaimModal: React.FC<WarrantyClaimModalProps> = ({
     if (!activeDevice) return;
 
     setSubmitting(true);
-    const claimNo = `WC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newClaim: WarrantyClaimRecord = {
-      id: claimNo,
-      deviceId: activeDevice.id,
-      deviceName: activeDevice.name,
-      serialOrImei: activeDevice.serialOrImei,
-      invoiceId: activeDevice.invoiceId,
-      issueCategory,
-      issueDescription,
-      contactPhone: customerPhone,
-      status: 'Submitted',
-      statusNote: 'Initial claim registered online. Technical team reviewing warranty eligibility.',
-      submittedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
     try {
-      await supabase.from('warranty_claims').insert([
-        {
-          id: claimNo,
-          invoice_id: activeDevice.invoiceId,
-          device_name: activeDevice.name,
-          serial_or_imei: activeDevice.serialOrImei,
-          contact_phone: customerPhone,
-          issue_category: issueCategory,
-          issue_description: issueDescription,
-          status: 'Submitted',
-          status_note: 'Initial claim registered online. Technical team reviewing warranty eligibility.'
-        }
-      ]);
+      const result = await createWarrantyClaim({ invoice_id: activeDevice.invoiceId, device_name: activeDevice.name, serial_or_imei: activeDevice.serialOrImei, issue_category: issueCategory, issue_description: issueDescription });
+      const record = result.claim;
+      const newClaim: WarrantyClaimRecord = { id: record.id, deviceId: activeDevice.id, deviceName: record.device_name, serialOrImei: record.serial_or_imei || '', invoiceId: record.invoice_id, issueCategory: record.issue_category, issueDescription: record.issue_description, contactPhone: customerPhone, status: record.status, statusNote: record.status_note, submittedAt: record.created_at, updatedAt: record.created_at };
+      setSubmittedClaim(newClaim);
+      onClaimSubmitted(newClaim);
     } catch (err) {
-      console.warn('Could not sync claim to cloud table, fallback to memory state:', err);
+      console.warn('Could not submit warranty claim:', err);
+      setSubmitting(false);
+      return;
     }
-
-    setSubmittedClaim(newClaim);
-    onClaimSubmitted(newClaim);
     setSubmitting(false);
   };
 

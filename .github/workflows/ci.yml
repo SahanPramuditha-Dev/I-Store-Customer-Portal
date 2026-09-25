@@ -26,3 +26,11 @@ jobs:
 
       - name: TypeScript Check & Vite Build
         run: npm run build
+
+      - name: Build Worker portal and run security tests
+        run: |
+          npm run build:cloud
+          cd worker
+          npm ci
+          npm run check
+          npm test

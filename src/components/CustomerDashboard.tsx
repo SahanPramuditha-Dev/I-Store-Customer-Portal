@@ -6,7 +6,7 @@ import {
   ArrowUpRight, Gift, Calendar, Tag, ArrowLeftRight, BadgeCheck, 
   Package, Laptop, Clock
 } from 'lucide-react';
-import { supabase } from '../supabase';
+import { createAppointment, createRepairRequest, getPortalState } from '../services/portalActions';
 import { CustomSelect } from './ui/CustomSelect';
 import { MobileBottomNav } from './layout/MobileBottomNav';
 import { PortalFooter } from './layout/PortalFooter';
@@ -43,22 +43,7 @@ export default function CustomerDashboard({
   const [repairIssueInput, setRepairIssueInput] = useState('');
   const [submittingRepair, setSubmittingRepair] = useState(false);
   const [repairsList, setRepairsList] = useState<RepairTicketRecord[]>([]);
-  const [claimsList, setClaimsList] = useState<WarrantyClaimRecord[]>([
-    {
-      id: 'WC-2026-0021',
-      deviceId: 'demo-1',
-      deviceName: 'iPhone 15',
-      serialOrImei: '356948210492810',
-      invoiceId: 'INV-2026-000003',
-      issueCategory: 'Display & Screen',
-      issueDescription: 'Screen flickering intermittently during outdoor use.',
-      contactPhone: customerPhone,
-      status: 'Under Review',
-      statusNote: 'Authorized technician assigned to verify hardware coverage.',
-      submittedAt: new Date(Date.now() - 86400000).toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-  ]);
+  const [claimsList, setClaimsList] = useState<WarrantyClaimRecord[]>([]);
   const [timelineDevice, setTimelineDevice] = useState<CustomerDevice | null>(null);
   const [copiedText, setCopiedText] = useState('');
   const [purchaseSearch, setPurchaseSearch] = useState('');
@@ -69,16 +54,7 @@ export default function CustomerDashboard({
   const [tradeInCondition, setTradeInCondition] = useState('Flawless');
 
   // Appointments State
-  const [appointmentsList, setAppointmentsList] = useState<AppointmentRecord[]>([
-    {
-      id: 'APT-9042',
-      deviceName: 'iPhone 15',
-      serviceType: 'Express Diagnostic Check',
-      date: 'Aug 22, 2026',
-      timeSlot: 'Afternoon Slot (2 PM - 5 PM)',
-      status: 'Confirmed'
-    }
-  ]);
+  const [appointmentsList, setAppointmentsList] = useState<AppointmentRecord[]>([]);
   const [apptDevice, setApptDevice] = useState('');
   const [apptService, setApptService] = useState('Diagnostic & Health Check');
   const [apptDate, setApptDate] = useState('');
@@ -183,22 +159,17 @@ export default function CustomerDashboard({
   }, [devices, deviceFilter]);
 
   useEffect(() => {
-    const fetchRepairs = async () => {
+    const loadCustomerServiceRecords = async () => {
       try {
-        const variations = customerPhone.replace(/[^\d]/g, '');
-        const { data } = await supabase
-          .from('repair_tickets')
-          .select('*')
-          .ilike('customer_phone', `%${variations.slice(-9)}%`)
-          .order('created_at', { ascending: false });
-        if (data) {
-          setRepairsList(data);
-        }
+        const data = await getPortalState();
+        setRepairsList(data.repairs || []);
+        setClaimsList((data.claims || []).map((claim: any) => ({ id: claim.id, deviceId: claim.serial_or_imei || claim.id, deviceName: claim.device_name, serialOrImei: claim.serial_or_imei || '', invoiceId: claim.invoice_id || '', issueCategory: claim.issue_category, issueDescription: claim.issue_description, contactPhone: claim.contact_phone, status: claim.status, statusNote: claim.status_note, submittedAt: claim.created_at, updatedAt: claim.created_at })));
+        setAppointmentsList((data.appointments || []).map((appointment: any) => ({ id: appointment.id, deviceName: appointment.device_name, serviceType: appointment.service_type, date: appointment.date, timeSlot: appointment.time_slot, status: appointment.status, notes: appointment.notes })));
       } catch (err) {
-        console.warn('Could not load repairs:', err);
+        console.warn('Could not load customer service records:', err);
       }
     };
-    fetchRepairs();
+    loadCustomerServiceRecords();
   }, [customerPhone]);
 
   const handleCopy = (text: string) => {
@@ -211,34 +182,12 @@ export default function CustomerDashboard({
     e.preventDefault();
     if (!repairIssueInput.trim()) return;
     setSubmittingRepair(true);
-    const ticketId = `REP-${Math.floor(1000 + Math.random() * 9000)}`;
     const selectedDevObj = devices.find(d => d.name === selectedDeviceForRepair);
     try {
-      await supabase.from('repair_tickets').insert([
-        {
-          id: ticketId,
-          store_id: storeProfile.id,
-          customer_phone: customerPhone,
-          customer_name: customerName,
-          device_name: selectedDevObj?.cleanName || selectedDeviceForRepair || 'Hardware Device',
-          imei_or_serial: selectedDevObj?.serialOrImei || 'N/A',
-          issue_description: repairIssueInput.trim(),
-          status: 'Submitted'
-        }
-      ]);
-      const newTicket: RepairTicketRecord = {
-        id: ticketId,
-        store_id: storeProfile.id,
-        customer_phone: customerPhone,
-        customer_name: customerName,
-        device_name: selectedDevObj?.cleanName || selectedDeviceForRepair || 'Hardware Device',
-        imei_or_serial: selectedDevObj?.serialOrImei || 'N/A',
-        issue_description: repairIssueInput.trim(),
-        status: 'Submitted',
-        created_at: new Date().toISOString()
-      };
+      const result = await createRepairRequest({ device_name: selectedDevObj?.cleanName || selectedDeviceForRepair || 'Hardware Device', imei_or_serial: selectedDevObj?.serialOrImei || '', issue_description: repairIssueInput.trim() });
+      const newTicket: RepairTicketRecord = result.repair;
       setRepairsList(prev => [newTicket, ...prev]);
-      alert(`Repair Ticket #${ticketId} submitted successfully! Our service team will triage it shortly.`);
+      alert(`Repair Ticket #${newTicket.id} submitted successfully! Our service team will triage it shortly.`);
       setRepairIssueInput('');
       setRepairModalOpen(false);
       setActiveTab('repairs');
@@ -250,21 +199,18 @@ export default function CustomerDashboard({
     }
   };
 
-  const handleBookAppointment = (e: React.FormEvent) => {
+  const handleBookAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const aptId = `APT-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newApt: AppointmentRecord = {
-      id: aptId,
-      deviceName: apptDevice || devices[0]?.cleanName || devices[0]?.name || 'Device',
-      serviceType: apptService,
-      date: apptDate || 'Scheduled This Week',
-      timeSlot: apptSlot,
-      status: 'Confirmed'
-    };
-    setAppointmentsList(prev => [newApt, ...prev]);
-    alert(`Appointment ${aptId} booked successfully! We look forward to seeing you at ${storeProfile.name}.`);
-    setAppointmentModalOpen(false);
-    setActiveTab('repairs');
+    try {
+      const result = await createAppointment({ device_name: apptDevice || devices[0]?.cleanName || devices[0]?.name || 'Device', service_type: apptService, date: apptDate, time_slot: apptSlot });
+      const appointment = result.appointment;
+      setAppointmentsList(prev => [{ id: appointment.id, deviceName: appointment.device_name, serviceType: appointment.service_type, date: appointment.date, timeSlot: appointment.time_slot, status: appointment.status }, ...prev]);
+      alert(`Appointment ${appointment.id} booked successfully! We look forward to seeing you at ${storeProfile.name}.`);
+      setAppointmentModalOpen(false);
+      setActiveTab('repairs');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not book your appointment.');
+    }
   };
 
   const estimatedTradeValue = useMemo(() => {

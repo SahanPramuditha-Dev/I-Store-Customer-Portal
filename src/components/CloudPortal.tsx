@@ -5,7 +5,12 @@ type Bill = { invoiceRef: string; customerName: string; issuedAt: string; curren
 type Turnstile = { render: (el: HTMLElement, options: Record<string, unknown>) => string; remove: (id: string) => void };
 const api = async (path: string, body?: unknown) => {
   const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-  const data = await response.json();
+  if (!response.headers.get('Content-Type')?.includes('application/json')) {
+    throw new Error('The portal service is unavailable. Please try again later.');
+  }
+  const data = await response.json().catch(() => {
+    throw new Error('The portal service returned an invalid response. Please try again later.');
+  });
   if (!response.ok) throw new Error(data.error?.message || 'Connection unavailable. Please try again.');
   return data;
 };

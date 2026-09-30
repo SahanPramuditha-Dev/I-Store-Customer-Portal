@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:cloud": "tsc -b && vite build --mode cloud --outDir dist-cloud",
     "lint": "oxlint",
     "preview": "vite preview"
   },

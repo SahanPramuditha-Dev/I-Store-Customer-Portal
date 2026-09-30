@@ -132,6 +132,34 @@ create table if not exists customer_feedback (
     created_at timestamp with time zone default now()
 );
 
+-- Short-lived credentials for the customer portal. The code itself is never
+-- stored, and session tokens are stored only as SHA-256 hashes.
+create table if not exists customer_portal_otps (
+    id uuid primary key default uuid_generate_v4(),
+    phone text not null,
+    store_id text references stores(id) on delete cascade default 'default',
+    code_hash text not null,
+    expires_at timestamp with time zone not null,
+    consumed_at timestamp with time zone,
+    attempts integer not null default 0 check (attempts >= 0 and attempts <= 5),
+    created_at timestamp with time zone default now()
+);
+
+create table if not exists customer_portal_sessions (
+    id uuid primary key default uuid_generate_v4(),
+    token_hash text not null unique,
+    phone text not null,
+    store_id text references stores(id) on delete cascade default 'default',
+    expires_at timestamp with time zone not null,
+    revoked_at timestamp with time zone,
+    created_at timestamp with time zone default now()
+);
+
+create index if not exists idx_customer_portal_otps_phone_created
+    on customer_portal_otps (phone, created_at desc);
+create index if not exists idx_customer_portal_sessions_token
+    on customer_portal_sessions (token_hash);
+
 -- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES — HARDENED SECURITY BASELINE
 -- ==============================================================================
@@ -145,6 +173,21 @@ alter table repair_tickets enable row level security;
 alter table warranty_claims enable row level security;
 alter table service_appointments enable row level security;
 alter table customer_feedback enable row level security;
+alter table customer_portal_otps enable row level security;
+alter table customer_portal_sessions enable row level security;
+
+-- Existing deployments may already contain these formerly permissive policies.
+-- Drop them explicitly before applying the service-only baseline below.
+drop policy if exists "Customer invoices read access" on invoices;
+drop policy if exists "Customer invoice items read access" on invoice_items;
+drop policy if exists "Customer repairs read access" on repair_tickets;
+drop policy if exists "Customer repairs insert request" on repair_tickets;
+drop policy if exists "Customer claims read access" on warranty_claims;
+drop policy if exists "Customer claims insert access" on warranty_claims;
+drop policy if exists "Customer appointments read access" on service_appointments;
+drop policy if exists "Customer appointments insert access" on service_appointments;
+drop policy if exists "Customer feedback insert access" on customer_feedback;
+drop policy if exists "Public feedback read access" on customer_feedback;
 alter table staff_pins enable row level security;
 
 -- 1. STORES (Public read for active profiles; write restricted to service role)
@@ -160,30 +203,15 @@ drop policy if exists "Public invoices read access" on invoices;
 create policy "Service role invoices full access" on invoices
     for all using (auth.role() = 'service_role');
 
-create policy "Customer invoices read access" on invoices
-    for select using (
-        auth.role() = 'service_role'
-        or (auth.jwt() ->> 'phone' is not null and auth.jwt() ->> 'phone' = customer_phone)
-        or (token is not null and length(token) >= 8)
-    );
+-- Customer records are served only through the trusted portal API using the
+-- service role. A token's shape or an untrusted browser-supplied phone number
+-- must never grant access.
 
 -- 3. INVOICE ITEMS (Service role full access; read scoped to parent invoice access)
 drop policy if exists "Public invoice items read access" on invoice_items;
 create policy "Service role invoice items full access" on invoice_items
     for all using (auth.role() = 'service_role');
 
-create policy "Customer invoice items read access" on invoice_items
-    for select using (
-        auth.role() = 'service_role'
-        or exists (
-            select 1 from invoices
-            where invoices.id = invoice_items.invoice_id
-            and (
-                (auth.jwt() ->> 'phone' is not null and auth.jwt() ->> 'phone' = invoices.customer_phone)
-                or (invoices.token is not null and length(invoices.token) >= 8)
-            )
-        )
-    );
 
 -- 4. CUSTOMERS (Service role full access; read scoped to verified phone)
 drop policy if exists "Public customers read access" on customers;
@@ -202,19 +230,7 @@ drop policy if exists "Public repairs insert access" on repair_tickets;
 create policy "Service role repairs full access" on repair_tickets
     for all using (auth.role() = 'service_role');
 
-create policy "Customer repairs read access" on repair_tickets
-    for select using (
-        auth.role() = 'service_role'
-        or (auth.jwt() ->> 'phone' is not null and auth.jwt() ->> 'phone' = customer_phone)
-        or (customer_phone is not null and length(customer_phone) >= 9)
-    );
 
-create policy "Customer repairs insert request" on repair_tickets
-    for insert with check (
-        customer_phone is not null
-        and length(trim(customer_phone)) >= 9
-        and device_name is not null
-    );
 
 -- 6. WARRANTY CLAIMS (Service role full access; customer insert & scoped select)
 drop policy if exists "Public claims read access" on warranty_claims;
@@ -222,19 +238,7 @@ drop policy if exists "Public claims insert access" on warranty_claims;
 create policy "Service role claims full access" on warranty_claims
     for all using (auth.role() = 'service_role');
 
-create policy "Customer claims read access" on warranty_claims
-    for select using (
-        auth.role() = 'service_role'
-        or (auth.jwt() ->> 'phone' is not null and auth.jwt() ->> 'phone' = contact_phone)
-        or (contact_phone is not null and length(contact_phone) >= 9)
-    );
 
-create policy "Customer claims insert access" on warranty_claims
-    for insert with check (
-        contact_phone is not null
-        and length(trim(contact_phone)) >= 9
-        and issue_description is not null
-    );
 
 -- 7. SERVICE APPOINTMENTS (Service role full access; customer insert & scoped select)
 drop policy if exists "Public appointments read access" on service_appointments;
@@ -242,19 +246,7 @@ drop policy if exists "Public appointments insert access" on service_appointment
 create policy "Service role appointments full access" on service_appointments
     for all using (auth.role() = 'service_role');
 
-create policy "Customer appointments read access" on service_appointments
-    for select using (
-        auth.role() = 'service_role'
-        or (auth.jwt() ->> 'phone' is not null and auth.jwt() ->> 'phone' = customer_phone)
-        or (customer_phone is not null and length(customer_phone) >= 9)
-    );
 
-create policy "Customer appointments insert access" on service_appointments
-    for insert with check (
-        customer_phone is not null
-        and date is not null
-        and time_slot is not null
-    );
 
 -- 8. CUSTOMER FEEDBACK (Service role full access; customer insert)
 drop policy if exists "Public feedback insert access" on customer_feedback;
@@ -262,16 +254,13 @@ drop policy if exists "Public feedback read access" on customer_feedback;
 create policy "Service role feedback full access" on customer_feedback
     for all using (auth.role() = 'service_role');
 
-create policy "Customer feedback insert access" on customer_feedback
-    for insert with check (
-        rating >= 1 and rating <= 5
-    );
+create policy "Service role portal OTP management" on customer_portal_otps
+    for all using (auth.role() = 'service_role');
+create policy "Service role portal session management" on customer_portal_sessions
+    for all using (auth.role() = 'service_role');
 
-create policy "Public feedback read access" on customer_feedback
-    for select using (true);
 
 -- 9. STAFF PINS (Synced from POS on manager login — strictly service role only)
 drop policy if exists "Service role only" on staff_pins;
 create policy "Service role only" on staff_pins
     for all using (auth.role() = 'service_role');
-

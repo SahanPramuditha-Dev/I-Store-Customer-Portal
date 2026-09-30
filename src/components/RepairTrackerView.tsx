@@ -1,24 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Wrench, Printer, MessageSquare, CheckCircle2, Clock, Loader2 } from 'lucide-react';
-import { supabase } from '../supabase';
+import { getPortalState } from '../services/portalActions';
+import { getStoredCustomerSession } from '../services/customerAuth';
 import { DEFAULT_STORE } from '../types';
 import type { StoreProfile, RepairTicketRecord } from '../types';
 import { fetchStoreProfile, ThemeToggle } from '../utils/security';
+import { resolveStoreSlug } from '../utils/domainResolver';
 
 export default function RepairTrackerView({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const { id, storeSlug } = useParams<{ id: string; storeSlug?: string }>();
   const [storeProfile, setStoreProfile] = useState<StoreProfile>(DEFAULT_STORE);
   const [ticket, setTicket] = useState<RepairTicketRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authRequired, setAuthRequired] = useState(false);
 
   useEffect(() => {
     const fetchTicket = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const rawId = id || urlParams.get('id') || urlParams.get('search') || urlParams.get('ticket') || '';
-      const storeParam = storeSlug || urlParams.get('store') || urlParams.get('s');
+      const storeParam = resolveStoreSlug(storeSlug);
 
-      if (storeParam) {
+      if (storeParam && storeParam !== 'default') {
         fetchStoreProfile(storeParam).then(prof => setStoreProfile(prof));
       }
 
@@ -29,45 +32,17 @@ export default function RepairTrackerView({ isDark, toggleTheme }: { isDark: boo
       setLoading(true);
       const queryId = rawId.trim().replace(/\s+/g, '-').toUpperCase();
 
-      const modelVal = urlParams.get('model') || (queryId === 'JOB-2026-000001' ? 'Samsung A15' : 'Electronic Device');
-      const issueVal = urlParams.get('issue') || (queryId === 'JOB-2026-000001' ? 'Display green line' : 'Hardware Servicing & Diagnosis');
-      const statusVal = urlParams.get('status') || (queryId === 'JOB-2026-000001' ? 'Completed' : 'Inspection & Servicing');
-      const noteVal = urlParams.get('note') || '';
-      const estVal = Number(urlParams.get('est') || (queryId === 'JOB-2026-000001' ? 200 : 0));
-      const advVal = Number(urlParams.get('adv') || 0);
-      const balVal = Number(urlParams.get('bal') || (estVal - advVal));
-      const nameVal = urlParams.get('name') || (queryId === 'JOB-2026-000001' ? 'Sahan Pramuditha' : 'Valued Customer');
-      const phoneVal = urlParams.get('phone') || (queryId === 'JOB-2026-000001' ? '+94764158980' : '');
-      const imeiVal = urlParams.get('imei') || (queryId === 'JOB-2026-000001' ? '357441052530733' : '');
-
       document.title = `${queryId} - Live Repair Tracking | ${storeProfile.name}`;
-      setTicket({
-        id: queryId,
-        customer_phone: phoneVal,
-        customer_name: nameVal,
-        device_name: modelVal,
-        imei_or_serial: imeiVal,
-        issue_description: issueVal,
-        status: statusVal,
-        status_note: noteVal,
-        estimated_cost: estVal,
-        advance_paid: advVal,
-        balance_due: balVal,
-        created_at: new Date().toISOString(),
-      });
-      setLoading(false);
-
+      if (!getStoredCustomerSession()?.session_token) {
+        setAuthRequired(true);
+        setTicket(null);
+        setLoading(false);
+        return;
+      }
       try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500));
-        const supabasePromise = supabase
-          .from('repair_tickets')
-          .select('*')
-          .eq('id', queryId)
-          .maybeSingle();
-
-        const res: any = await Promise.race([supabasePromise, timeoutPromise]);
-        if (res && res.data && !res.error) {
-          const data = res.data;
+        const result = await getPortalState();
+        const data = (result.repairs || []).find((row: RepairTicketRecord) => row.id.toUpperCase() === queryId);
+        if (data) {
           if (data.store_id && data.store_id !== 'default') {
             fetchStoreProfile(data.store_id).then(prof => setStoreProfile(prof));
           }
@@ -85,9 +60,12 @@ export default function RepairTrackerView({ isDark, toggleTheme }: { isDark: boo
             balance_due: Number(data.balance_due || (Number(data.estimated_cost || 0) - Number(data.advance_paid || 0))),
             created_at: data.created_at || new Date().toISOString(),
           });
+        } else {
+          setTicket(null);
         }
       } catch (_err) {
-        // Fallback active
+        setAuthRequired(true);
+        setTicket(null);
       } finally {
         setLoading(false);
       }
@@ -111,13 +89,13 @@ export default function RepairTrackerView({ isDark, toggleTheme }: { isDark: boo
         <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
           <Wrench className="w-7 h-7" />
         </div>
-        <h2 className="text-xl font-bold">Repair Ticket Not Found</h2>
+        <h2 className="text-xl font-bold">{authRequired ? 'WhatsApp verification required' : 'Repair Ticket Not Found'}</h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
-          The requested repair job <span className="font-mono font-bold text-slate-800 dark:text-slate-200">"{id}"</span> could not be found for {storeProfile.name}.
+          {authRequired ? 'Sign in at the portal home with your WhatsApp code to view repair details.' : <>The requested repair job <span className="font-mono font-bold text-slate-800 dark:text-slate-200">"{id}"</span> could not be found for {storeProfile.name}.</>}
         </p>
         <div className="flex gap-2">
-          <Link to="/" className="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200">
-            Back to Home
+          <Link to={storeSlug ? `/store/${storeSlug}` : '/'} className="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200">
+            {authRequired ? 'Verify with WhatsApp' : 'Back to Home'}
           </Link>
           <a
             href={`https://wa.me/${(storeProfile.whatsapp_number || '94771234567').replace(/\D/g, '')}`}

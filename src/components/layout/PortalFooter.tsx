@@ -389,7 +389,7 @@ export function PortalFooter({
                 <ul className="list-disc pl-4 space-y-1.5">
                   <li>Customer purchase history and warranty records are strictly protected with encrypted session tokens.</li>
                   <li>We do not share your contact number or purchase data with third-party advertisers.</li>
-                  <li>SMS and WhatsApp notifications are strictly reserved for bill delivery, warranty updates, and repair alerts.</li>
+                  <li>WhatsApp notifications are used for verification, bill delivery, warranty updates, and repair alerts.</li>
                 </ul>
               </>
             )}

@@ -4,10 +4,13 @@ import {
   Receipt, Wrench, Printer, CheckCircle2, 
   ShieldCheck, Loader2, Star, Check, Copy 
 } from 'lucide-react';
-import { supabase } from '../supabase';
+import { createRepairRequest, submitFeedback } from '../services/portalActions';
+import { getAuthorizedInvoices } from '../services/portalActions';
+import { getStoredCustomerSession } from '../services/customerAuth';
 import { DEFAULT_STORE } from '../types';
 import type { StoreProfile, Invoice } from '../types';
-import { isValidSecurityToken, fetchStoreProfile, ThemeToggle } from '../utils/security';
+import { fetchStoreProfile, ThemeToggle } from '../utils/security';
+import { resolveStoreSlug } from '../utils/domainResolver';
 
 export default function InvoiceView({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
   const { id, storeSlug } = useParams<{ id: string; storeSlug?: string }>();
@@ -33,16 +36,7 @@ export default function InvoiceView({ isDark, toggleTheme }: { isDark: boolean; 
     try {
       const praiseStr = selectedPraise.length > 0 ? ` [Tags: ${selectedPraise.join(', ')}]` : '';
       const fullComment = `${feedbackComment.trim()}${praiseStr}`.trim();
-      await supabase.from('customer_feedback').insert([
-        {
-          invoice_id: invoice.id,
-          store_id: storeProfile.id,
-          customer_phone: invoice.customerPhone,
-          customer_name: invoice.customerName,
-          rating: selectedRating,
-          comment: fullComment || 'Customer submitted star review via Digital Receipt'
-        }
-      ]);
+      await submitFeedback({ invoice_id: invoice.id, rating: selectedRating, comment: fullComment || 'Customer submitted star review via Digital Receipt' });
       setFeedbackSubmitted(true);
     } catch (err) {
       console.warn('Could not save feedback to cloud table:', err);
@@ -54,20 +48,9 @@ export default function InvoiceView({ isDark, toggleTheme }: { isDark: boolean; 
 
   const handleSubmitRepair = async () => {
     if (!repairIssue.trim() || !invoice) return;
-    const ticketId = `REP-${Math.floor(1000 + Math.random() * 9000)}`;
     try {
-      await supabase.from('repair_tickets').insert([
-        {
-          id: ticketId,
-          store_id: storeProfile.id,
-          customer_phone: invoice.customerPhone,
-          device_name: invoice.items[0]?.name || 'Electronic Device',
-          imei_or_serial: invoice.items[0]?.imeiOrSerial || 'N/A',
-          issue_description: repairIssue.trim(),
-          status: 'Submitted'
-        }
-      ]);
-      alert(`Repair ticket submitted successfully! Ticket ID: ${ticketId}`);
+      const result = await createRepairRequest({ device_name: invoice.items[0]?.name || 'Electronic Device', imei_or_serial: invoice.items[0]?.imeiOrSerial || '', issue_description: repairIssue.trim() });
+      alert(`Repair ticket submitted successfully! Ticket ID: ${result.repair.id}`);
       setRepairIssue('');
       setRepairModalOpen(false);
     } catch {
@@ -79,119 +62,48 @@ export default function InvoiceView({ isDark, toggleTheme }: { isDark: boolean; 
     const fetchInvoice = async () => {
       if (!id) return;
       const normalizedId = id.trim().replace(/\s+/g, '-').toUpperCase();
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlToken = urlParams.get('token');
-      const storeParam = storeSlug || urlParams.get('store') || urlParams.get('s');
-      const isSignatureValid = isValidSecurityToken(normalizedId, urlToken);
+      const storeParam = resolveStoreSlug(storeSlug);
 
-      if (storeParam) {
+      if (storeParam && storeParam !== 'default') {
         fetchStoreProfile(storeParam).then(prof => setStoreProfile(prof));
       }
 
-      if (isSignatureValid) {
-        const totalParam = urlParams.get('total');
-        const totalVal = totalParam ? Number(totalParam) : (normalizedId === 'INV-2026-000002' ? 217800 : 1350);
-        const subtotalVal = Number(urlParams.get('subtotal') || (normalizedId === 'INV-2026-000002' ? 220000 : totalVal));
-        const discountVal = Number(urlParams.get('disc') || (normalizedId === 'INV-2026-000002' ? 2200 : 0));
-        const nameVal = urlParams.get('name') || (normalizedId === 'INV-2026-000002' ? 'Nexusis Technologies' : 'Valued Customer');
-        const phoneVal = urlParams.get('phone') || (normalizedId === 'INV-2026-000002' ? '0785571342' : '');
-        const methodVal = urlParams.get('method') || 'Cash';
-        const itemName = urlParams.get('item') || (normalizedId === 'INV-2026-000002' ? 'iPhone 12 (128GB)' : 'Retail Product Item');
-        const imeiVal = urlParams.get('imei') || '';
-
-        const rawWarranty = urlParams.get('warranty') ?? urlParams.get('warranty_months');
-        const rawWarrantyDays = urlParams.get('warranty_days');
-        let warrantyDaysVal = rawWarrantyDays !== null ? Number(rawWarrantyDays) : 0;
-        let warrantyMonthsVal = rawWarranty !== null ? Number(rawWarranty) : (warrantyDaysVal > 0 ? Math.round(warrantyDaysVal / 30) : 0);
-        if (rawWarranty === null && rawWarrantyDays === null) {
-          if (normalizedId === 'INV-2026-000002') {
-            warrantyMonthsVal = 12;
-            warrantyDaysVal = 365;
-          }
-        }
-
-        const computedPoints = Math.floor(Number(totalVal || 0) / 1000);
-
-        document.title = `${normalizedId} - Digital Receipt | ${storeProfile.name}`;
-        setInvoice({
-          id: normalizedId,
-          token: urlToken || 'sec_verified',
-          storeId: storeParam || 'default',
-          shortCode: normalizedId,
-          date: new Date().toLocaleString(),
-          customerName: nameVal,
-          customerPhone: phoneVal,
-          customerEmail: '',
-          loyaltyPoints: computedPoints,
-          items: [
-            {
-              name: itemName,
-              qty: 1,
-              price: totalVal,
-              warrantyMonths: warrantyMonthsVal,
-              warrantyDays: warrantyDaysVal,
-              imeiOrSerial: imeiVal || undefined
-            }
-          ],
-          subtotal: subtotalVal,
-          tax: 0,
-          discount: discountVal,
-          total: totalVal,
-          paymentMethod: methodVal,
-          status: 'Paid'
-        });
-        setLoading(false);
-      }
-
-      try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500));
-        const supabasePromise = supabase
-          .from('invoices')
-          .select('*, invoice_items(*)')
-          .eq('id', normalizedId)
-          .maybeSingle();
-
-        const res: any = await Promise.race([supabasePromise, timeoutPromise]);
-        if (res && res.data && !res.error && isSignatureValid) {
-          const data = res.data;
-          if (data.store_id && data.store_id !== 'default') {
-            fetchStoreProfile(data.store_id).then(prof => setStoreProfile(prof));
-          }
-          const invPoints = data.loyalty_points !== undefined && data.loyalty_points !== null
-            ? Number(data.loyalty_points)
-            : Math.floor(Number(data.total || 0) / 1000);
-
-          setInvoice({
-            id: data.id,
-            token: data.token || urlToken || 'sec_verified',
-            storeId: data.store_id || storeParam || 'default',
-            shortCode: data.id,
-            date: new Date(data.created_at).toLocaleString(),
-            customerName: data.customer_name || 'Valued Customer',
-            customerPhone: data.customer_phone || '',
-            customerEmail: data.customer_email || '',
-            loyaltyPoints: invPoints,
-            items: (data.invoice_items || []).map((i: any) => ({
-              name: i.item_name || 'Product',
-              qty: Number(i.quantity || 1),
-              price: Number(i.unit_price || 0),
-              warrantyMonths: Number(i.warranty_months || 0),
-              warrantyDays: Number(i.warranty_days || 0),
-              imeiOrSerial: i.imei_or_serial || undefined
+      const session = getStoredCustomerSession();
+      if (session?.session_token && (!storeSlug || session.store_id === storeParam)) {
+        try {
+          const result = await getAuthorizedInvoices();
+          const row = (result.invoices || []).find((entry: any) => String(entry.id).toUpperCase() === normalizedId);
+          if (row) setInvoice({
+            id: row.id,
+            token: '',
+            storeId: row.store_id,
+            date: row.created_at,
+            customerName: row.customer_name,
+            customerPhone: row.customer_phone,
+            customerEmail: row.customer_email || '',
+            loyaltyPoints: Number(row.loyalty_points || 0),
+            items: (row.invoice_items || []).map((item: any) => ({
+              name: item.item_name,
+              qty: Number(item.quantity || 0),
+              price: Number(item.unit_price || 0),
+              warrantyMonths: Number(item.warranty_months || 0),
+              warrantyDays: Number(item.warranty_days || 0),
+              imeiOrSerial: item.imei_or_serial || '',
             })),
-            subtotal: Number(data.subtotal || 0),
-            tax: Number(data.tax || 0),
-            discount: Number(data.discount || 0),
-            total: Number(data.total || 0),
-            paymentMethod: data.payment_method || 'Cash',
-            status: data.status === 'Paid' ? 'Paid' : 'Pending'
+            subtotal: Number(row.subtotal || 0),
+            tax: Number(row.tax || 0),
+            discount: Number(row.discount || 0),
+            total: Number(row.total || 0),
+            paymentMethod: row.payment_method || '',
+            status: row.status === 'Pending' ? 'Pending' : 'Paid',
+            shortCode: row.id,
           });
+        } catch {
+          setInvoice(null);
         }
-      } catch (_err) {
-        // Fallback active
-      } finally {
-        setLoading(false);
       }
+      document.title = `${normalizedId} - Secure Bill Access | ${storeProfile.name}`;
+      setLoading(false);
     };
 
     fetchInvoice();
@@ -215,17 +127,18 @@ export default function InvoiceView({ isDark, toggleTheme }: { isDark: boolean; 
   }
 
   if (!invoice) {
+    const verified = Boolean(getStoredCustomerSession()?.session_token);
     return (
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col items-center justify-center p-6 text-center space-y-4">
         <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-500">
           <Receipt className="w-7 h-7" />
         </div>
-        <h2 className="text-xl font-bold">Invalid or Expired Invoice Link</h2>
+        <h2 className="text-xl font-bold">{verified ? 'Invoice not found for your account' : 'WhatsApp verification required'}</h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
-          The requested invoice <span className="font-mono font-bold text-slate-800 dark:text-slate-200">"{id}"</span> is missing a verified security signature or could not be found.
+          {verified ? <>Invoice <span className="font-mono font-bold text-slate-800 dark:text-slate-200">"{id}"</span> is unavailable for your verified account.</> : <>Verify your number at the portal home to view invoice <span className="font-mono font-bold text-slate-800 dark:text-slate-200">"{id}"</span>. It will appear only if it belongs to your verified account.</>}
         </p>
-        <Link to="/" className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition">
-          Return to Portal Home
+        <Link to={storeSlug ? `/store/${storeSlug}` : '/'} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition">
+          {verified ? 'View my bills' : 'Verify with WhatsApp'}
         </Link>
       </div>
     );
@@ -345,11 +258,23 @@ export default function InvoiceView({ isDark, toggleTheme }: { isDark: boolean; 
                     <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                       <td className="py-3 px-1.5">
                         <span className="font-bold text-slate-900 dark:text-white block">{item.name}</span>
-                        {item.imeiOrSerial && (
-                          <span className="font-mono text-[10px] text-cyan-600 dark:text-cyan-400 block mt-0.5">
-                            S/N: {item.imeiOrSerial}
-                          </span>
-                        )}
+                        <div className="flex flex-wrap gap-1.5 mt-0.5">
+                          {item.imeiOrSerial && (
+                            <span className="font-mono text-[10px] text-cyan-600 dark:text-cyan-400">
+                              S/N: {item.imeiOrSerial}
+                            </span>
+                          )}
+                          {(item as any).batch_number && (
+                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded font-mono">
+                              Batch: {(item as any).batch_number}
+                            </span>
+                          )}
+                          {(item as any).expiry_date && (
+                            <span className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
+                              Exp: {(item as any).expiry_date}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-1.5">
                         {hasWarranty ? (
@@ -362,10 +287,12 @@ export default function InvoiceView({ isDark, toggleTheme }: { isDark: boolean; 
                             <span className="text-[10px] text-rose-500 font-medium">Expired</span>
                           )
                         ) : (
-                          <span className="text-slate-400">N/A</span>
+                          <span className="text-slate-400 text-xs">N/A</span>
                         )}
                       </td>
-                      <td className="py-3 px-1.5 text-center text-slate-700 dark:text-slate-300 font-medium">{item.qty}</td>
+                      <td className="py-3 px-1.5 text-center text-slate-700 dark:text-slate-300 font-medium">
+                        {item.qty} {(item as any).unit_of_measure && (item as any).unit_of_measure !== 'pcs' ? (item as any).unit_of_measure : ''}
+                      </td>
                       <td className="py-3 px-1.5 text-right text-slate-700 dark:text-slate-300">{item.price.toLocaleString()}</td>
                       <td className="py-3 px-1.5 text-right font-bold text-slate-900 dark:text-slate-100">
                         {(item.price * item.qty).toLocaleString()}

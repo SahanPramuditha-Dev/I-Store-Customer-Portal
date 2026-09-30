@@ -29,7 +29,7 @@ database_id = "723c3ed5-ce5c-40c6-8c0e-5a7877c86c3a"
 [vars]
 ENVIRONMENT = "staging"
 PORTAL_ENABLED = "false"
-PORTAL_ORIGIN = "https://i-store-customer-portal-api.sahan-dev-tech.workers.dev"
+PORTAL_ORIGIN = "https://i-store-customer-portal-one.vercel.app"
 
 [triggers]
 crons = ["17 3 * * *"]

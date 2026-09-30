@@ -72,13 +72,15 @@ test('enabled portal fails closed when its tenant mapping is missing', async t =
   assert.equal((await f.req('/health')).status,503);
   assert.equal((await f.req('/internal/bills',f.payload,f.pos)).status,503);
 });
-test('enabled portal fails closed without POS API connection', async t => {
+test('D1 bills remain available without the optional ERP proxy; proxy routes fail closed', async t => {
   const f=fixture(); t.after(()=>f.db.close());
   delete f.env.POS_PORTAL_API_TOKEN;
-  assert.equal((await f.req('/health')).status,503);
-  f.env.POS_PORTAL_API_TOKEN='t'.repeat(43);
   delete f.env.POS_API_BASE_URL;
-  assert.equal((await f.req('/health')).status,503);
+  assert.equal((await f.req('/health')).status,200);
+  assert.equal((await f.req('/internal/bills',f.payload,f.pos)).status,200);
+  const cookie=sessionFor(f);
+  assert.equal((await f.req('/api/portal/bills',undefined,cookie)).status,200);
+  assert.equal((await f.req('/api/portal/warranties',undefined,cookie)).status,503);
 });
 test('bill sync is idempotent, rejects identity changes and cannot roll back a newer version', async t => {
   const f=fixture(); t.after(()=>f.db.close());

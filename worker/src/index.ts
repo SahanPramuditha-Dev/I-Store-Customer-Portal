@@ -28,10 +28,8 @@ export default {
       !env.PORTAL_DB || !env.PC_BRIDGE_STORE_REF ||
       !env.TURNSTILE_SITE_KEY || !env.TURNSTILE_SECRET_KEY ||
       !/^https:\/\//.test(env.PORTAL_ORIGIN || '') ||
-      !/^https:\/\//.test(env.POS_API_BASE_URL || '') ||
       [env.POS_SHARED_SECRET, env.RECEIPT_TOKEN_SECRET, env.OTP_HMAC_SECRET,
-        env.SESSION_SECRET, env.PC_BRIDGE_TOKEN, env.DELIVERY_ENCRYPTION_KEY,
-        env.POS_PORTAL_API_TOKEN]
+        env.SESSION_SECRET, env.PC_BRIDGE_TOKEN, env.DELIVERY_ENCRYPTION_KEY]
         .some(value => !value || value.length < 32)
     )) return error('PORTAL_NOT_CONFIGURED', 'Customer access is not configured.', id, 503);
     const cors = corsHeaders(request, env);

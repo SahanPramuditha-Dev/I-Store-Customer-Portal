@@ -7,6 +7,9 @@ import { error, json } from '../utils/responses';
 async function securedPos(request: Request, env: Env, id: string, posPath: string, init?: RequestInit, eventType?: string): Promise<Response> {
   const session = await requirePortalSession(request, env);
   if (!session) return error('SESSION_EXPIRED', 'Verification is required.', id, 401);
+  if (!/^https:\/\//.test(env.POS_API_BASE_URL || '') || !env.POS_PORTAL_API_TOKEN || env.POS_PORTAL_API_TOKEN.length < 32) {
+    return error('PORTAL_DATA_UNAVAILABLE', 'This service is not configured yet.', id, 503);
+  }
   const upstream = await posRequest(env, session.customerRef, session.receiptId, posPath, init);
   if (!upstream.ok) return error('PORTAL_DATA_UNAVAILABLE', 'Portal data is temporarily unavailable.', id, upstream.status >= 500 ? 503 : upstream.status);
   const body = await upstream.json().catch(() => null);

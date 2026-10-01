@@ -3,17 +3,32 @@ import { requirePortalSession, requestContext } from '../middleware/auth';
 import { audit } from '../services/audit';
 import { posRequest } from '../services/pos';
 import { error, json } from '../utils/responses';
+import { consumeRateLimit } from '../services/rateLimit';
 
 async function securedPos(request: Request, env: Env, id: string, posPath: string, init?: RequestInit, eventType?: string): Promise<Response> {
   const session = await requirePortalSession(request, env);
   if (!session) return error('SESSION_EXPIRED', 'Verification is required.', id, 401);
+  if (!await consumeRateLimit(env, `service:${session.id}`, 60, 60)) return error('RATE_LIMITED', 'Please wait before making more requests.', id, 429);
+  if (init?.body && new TextEncoder().encode(String(init.body)).length > 12000) return error('PAYLOAD_TOO_LARGE', 'Your request is too large.', id, 413);
   if (!/^https:\/\//.test(env.POS_API_BASE_URL || '') || !env.POS_PORTAL_API_TOKEN || env.POS_PORTAL_API_TOKEN.length < 32) {
     return error('PORTAL_DATA_UNAVAILABLE', 'This service is not configured yet.', id, 503);
   }
-  const upstream = await posRequest(env, session.customerRef, session.receiptId, posPath, init);
+  let upstream: Response;
+  try {
+    upstream = await posRequest(env, session.customerRef, session.receiptId, posPath, init);
+  } catch {
+    return error('PORTAL_DATA_UNAVAILABLE', 'Portal data is temporarily unavailable.', id, 503);
+  }
   if (!upstream.ok) return error('PORTAL_DATA_UNAVAILABLE', 'Portal data is temporarily unavailable.', id, upstream.status >= 500 ? 503 : upstream.status);
   const body = await upstream.json().catch(() => null);
+  if (!body) return error('PORTAL_DATA_UNAVAILABLE', 'Portal data is temporarily unavailable.', id, 503);
   if (eventType) await audit(env, eventType, { customerRef: session.customerRef, receiptId: session.receiptId, ...(await requestContext(request, env)) });
+  if (posPath.endsWith('/download')) {
+    const disposition = upstream.headers.get('Content-Disposition');
+    const response = json(body, id, upstream.status);
+    if (disposition && /^attachment; filename="invoice-\d+\.json"$/.test(disposition)) response.headers.set('Content-Disposition', disposition);
+    return response;
+  }
   return json({ success: true, data: body }, id, upstream.status);
 }
 
@@ -23,6 +38,7 @@ export async function portalRoute(request: Request, env: Env, id: string, pathna
   const warrantyMatch = pathname.match(/^\/api\/portal\/warranties\/([^/]+)$/);
   const repairMatch = pathname.match(/^\/api\/portal\/repairs\/([^/]+)$/);
   const appointmentMatch = pathname.match(/^\/api\/portal\/appointments\/([^/]+)$/);
+  if (method === 'GET' && pathname === '/api/portal/requests') return securedPos(request, env, id, '/portal/requests');
   if (method === 'GET' && pathname === '/api/portal/bills') return securedPos(request, env, id, '/portal/bills');
   if (billMatch && method === 'GET' && !billMatch[2]) return securedPos(request, env, id, `/portal/bills/${encodeURIComponent(billMatch[1])}`, undefined, 'invoice_viewed');
   if (billMatch?.[2] === 'download' && method === 'GET') return securedPos(request, env, id, `/portal/bills/${encodeURIComponent(billMatch[1])}/download`, undefined, 'invoice_downloaded');

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { LockKeyhole, Receipt, Printer, LogOut, ArrowLeft } from 'lucide-react';
+import PortalServices from './PortalServices';
 
 type Bill = { invoiceRef: string; customerName: string; issuedAt: string; currency: string; subtotal: number; discount: number; tax: number; total: number; amountPaid?: number; balanceDue?: number; refundAmount?: number; lastSyncedAt: string; paymentMethod: string; status: string; items: { name: string; quantity: number; unitPrice: number; warrantyMonths: number; serial: string }[] };
 type Turnstile = { render: (el: HTMLElement, options: Record<string, unknown>) => string; remove: (id: string) => void };
-const api = async (path: string, body?: unknown) => {
-  const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+const api = async (path: string, body?: unknown, method?: string) => {
+  const response = await fetch(path, { method: method || (body === undefined ? 'GET' : 'POST'), credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   if (!response.headers.get('Content-Type')?.includes('application/json')) {
     throw new Error('The portal service is unavailable. Please try again later.');
   }
@@ -18,7 +19,7 @@ const money = (value: number) => new Intl.NumberFormat('en-LK', { style: 'curren
 
 export default function CloudPortal() {
   const token = window.location.pathname.match(/^\/r\/([A-Za-z0-9_-]{32,128})$/)?.[1] || '';
-  const [config, setConfig] = useState<{ enabled: boolean; siteKey: string } | null>(null);
+  const [config, setConfig] = useState<{ enabled: boolean; siteKey: string; servicesEnabled?: boolean } | null>(null);
   const [receipt, setReceipt] = useState<{ storeName: string; maskedPhone: string; senderOnline: boolean } | null>(null);
   const [bills, setBills] = useState<Bill[] | null>(null);
   const [selected, setSelected] = useState<Bill | null>(null);
@@ -146,6 +147,7 @@ export default function CloudPortal() {
       <div className="overflow-x-auto"><table className="w-full my-8 text-left"><thead><tr className="border-b"><th className="py-3">Item</th><th>Qty</th><th className="text-right">Unit price</th></tr></thead><tbody>{selected.items.map((x,i) => <tr key={i} className="border-b border-slate-100"><td className="py-4">{x.name}{x.serial && <p className="text-xs text-slate-500">Serial: {x.serial}</p>}{x.warrantyMonths > 0 && <p className="text-xs text-slate-500">Warranty: {x.warrantyMonths} months</p>}</td><td>{x.quantity}</td><td className="text-right">{money(x.unitPrice)}</td></tr>)}</tbody></table></div>
       <dl className="ml-auto max-w-xs space-y-2">{[['Subtotal',selected.subtotal],['Discount',selected.discount],['Tax',selected.tax],['Total',selected.total],['Amount paid',selected.amountPaid],['Balance due',selected.balanceDue],['Refunded',selected.refundAmount]].filter(([,value])=>value!==undefined).map(([label,value]) => <div key={String(label)} className="flex justify-between"><dt>{label}</dt><dd className="font-semibold">{money(Number(value))}</dd></div>)}</dl><p className="mt-6 text-sm">Payment: {selected.paymentMethod}</p>
     </article>}
+    {bills && config?.servicesEnabled && <PortalServices request={api} invoiceRef={selected?.invoiceRef} />}
     <footer className="mt-12 text-xs text-slate-500 print:hidden">Never share your verification code. Synced bills remain accessible during an active session even when the shop PC is offline.</footer>
   </main>;
 }

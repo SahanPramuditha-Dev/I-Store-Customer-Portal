@@ -100,6 +100,47 @@ function sessionFor(f, invoice='TEST-1') {
   f.db.prepare("INSERT INTO portal_sessions(id,session_token_hash,customer_ref,receipt_id,expires_at,last_activity_at,ip_hash,user_agent_hash) VALUES(?,?,?,?,datetime('now','+30 minutes'),CURRENT_TIMESTAMP,'ip','ua')").run(token,hash,row.customer_ref,row.id);
   return {Cookie:`portal_session=${token}`};
 }
+
+test('extended API forwards only authenticated receipt identity and preserves downloads',async t=>{
+  const f=fixture();t.after(()=>f.db.close());
+  await f.req('/internal/bills',f.payload,f.pos);
+  const cookie=sessionFor(f);
+  let calls=0;
+  t.mock.method(globalThis,'fetch',async (url,options)=>{
+    calls++;
+    assert.equal(url.origin,'https://pos.example');
+    assert.equal(options.redirect,'error');
+    assert.ok(options.signal instanceof AbortSignal);
+    assert.equal(options.headers.Authorization,`Bearer ${f.env.POS_PORTAL_API_TOKEN}`);
+    assert.equal(options.headers['X-Portal-Store-Ref'],'shop');
+    assert.equal(options.headers['X-Portal-Invoice-Ref'],'TEST-1');
+    assert.equal(options.headers['X-Portal-Customer-Ref'],createHmac('sha256',f.env.RECEIPT_TOKEN_SECRET).update('shop:94700000000').digest('hex'));
+    assert.equal(options.headers['X-Portal-Receipt-Id'],createHmac('sha256',f.env.RECEIPT_TOKEN_SECRET).update('shop:TEST-1').digest('hex'));
+    return Response.json({invoiceRef:'TEST-1'},{headers:{'Content-Disposition':'attachment; filename="invoice-1.json"'}});
+  });
+  assert.equal((await f.req('/api/portal/warranties')).status,401);
+  assert.equal(calls,0);
+  const response=await f.req('/api/portal/bills/TEST-1/download',undefined,cookie);
+  assert.equal(response.status,200);
+  assert.equal(response.headers.get('Content-Disposition'),'attachment; filename="invoice-1.json"');
+  assert.equal((await response.json()).invoiceRef,'TEST-1');
+  assert.equal((await f.req('/api/portal/requests',undefined,cookie)).status,200);
+});
+
+test('extended API rejects oversized bodies and handles upstream failures without leaking data',async t=>{
+  const f=fixture();t.after(()=>f.db.close());
+  await f.req('/internal/bills',f.payload,f.pos);
+  const cookie=sessionFor(f);
+  let calls=0;
+  t.mock.method(globalThis,'fetch',async ()=>{calls++;return new Response('<html>Error</html>');});
+  assert.equal((await f.req('/api/portal/feedback',{message:'x'.repeat(13000)},cookie)).status,413);
+  assert.equal(calls,0);
+  assert.equal((await f.req('/api/portal/warranties',undefined,cookie)).status,503);
+  t.mock.method(globalThis,'fetch',async ()=>{throw new Error('private upstream detail');});
+  const response=await f.req('/api/portal/warranties',undefined,cookie);
+  assert.equal(response.status,503);
+  assert.ok(!(await response.text()).includes('private upstream detail'));
+});
 test('new phone revokes existing sessions and queued jobs; old/new tokens cannot take over',async t=>{
   const f=fixture();t.after(()=>f.db.close());turnstile(t);
   await f.req('/internal/bills',f.payload,f.pos);

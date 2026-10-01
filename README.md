@@ -29,9 +29,15 @@ The Worker can be run locally with `npm run dev` from `worker`. Apply the D1 mig
 
 `GET /health` exposes `customerAccessEnabled`; HTTP 200 alone does not mean the customer flow is enabled. Keep customer access disabled if the mapping or delivery route is unverified.
 
-## Current rollout status (30 September 2026)
+## Current rollout status (1 October 2026)
 
-The Vercel frontend and Worker are reachable. The Worker is in staging with `customerAccessEnabled: false`. The licensing production mapping table has zero rows, so no branch is approved for rollout. The private ERP proxy contract is not implemented. These conditions prevent a verified live customer flow.
+The Vercel frontend and Worker are reachable. The Worker is deployed in staging with `customerAccessEnabled: false` and the correct Vercel origin. The real desktop `IPOINT` tenant database was verified against licensing shop 9 (`IPOINT-KT`); an inactive mapping now identifies organization 1, branch 1, and Worker store `i-store`. The connected Neon database is a separate, empty ERP environment. The desktop has no sales and the WhatsApp bridge remains offline.
+
+The ERP private API and customer service forms now support warranty/repair records, appointment requests and changes, feedback, and requests for repair, warranty claim, or bill resend. Staff review these in the ERP customer portal settings inbox. A saved request is pending review, not proof of a confirmed appointment or WhatsApp delivery. Bill downloads are JSON attachments; browser Print / Save PDF remains available for D1 snapshots.
+
+Before configuring optional services, apply ERP migration `20261001_0023`. Set the same `POS_PORTAL_API_TOKEN` on both sides and an HTTPS `POS_API_BASE_URL` that reaches the receipt-generating ERP database. ERP `CLOUDFLARE_RECEIPT_IDENTITY_KEY` must exactly match Worker `RECEIPT_TOKEN_SECRET`. Store/customer HMAC input uses digits without `+`, and HMAC output is SHA-256 hex. The proxy forwards receipt/store identity from D1, rejects redirects, limits request size/rate, and times out unavailable ERP connections. The service panel stays hidden until the proxy is configured.
+
+Mapping activation, a connected WhatsApp sender, and a real receipt/OTP verification remain required before customer access is enabled.
 
 ## License
 

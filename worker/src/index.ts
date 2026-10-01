@@ -43,7 +43,7 @@ export default {
     if (request.method === 'GET' && url.pathname === '/health') {
       response = json({ success: true, service: 'customer-portal-api', environment: env.ENVIRONMENT, customerAccessEnabled: env.PORTAL_ENABLED === 'true' }, id);
     } else if (url.pathname === '/api/config' && request.method === 'GET') {
-      response = json({ enabled: env.PORTAL_ENABLED === 'true', siteKey: env.TURNSTILE_SITE_KEY || '' }, id);
+      response = json({ enabled: env.PORTAL_ENABLED === 'true', siteKey: env.TURNSTILE_SITE_KEY || '', servicesEnabled: /^https:\/\//.test(env.POS_API_BASE_URL || '') && (env.POS_PORTAL_API_TOKEN || '').length >= 32 }, id);
     } else if (url.pathname.startsWith('/internal/delivery/')) {
       response = await deliveryRoute(request, env, id, url.pathname);
     } else if (url.pathname === '/internal/bills' && request.method === 'POST') {
